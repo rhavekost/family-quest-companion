@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FamilyMemberCard } from "@/components/FamilyMemberCard";
 import { MemberDetailSheet } from "@/components/MemberDetailSheet";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { TaskManager } from "@/components/TaskManager";
 import { useFamilyStore } from "@/store/familyStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
 import { FamilyMemberWithData } from "@/types/habitica";
@@ -16,15 +17,20 @@ import {
   Coins,
   TrendingUp,
   Settings,
-  Lock
+  Lock,
+  LayoutGrid,
+  Table2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type View = "dashboard" | "tasks";
 
 export function Dashboard() {
   const { familyMembers, lock, isDemoMode } = useFamilyStore();
   const { familyData, isLoading, refetchAll } = useFamilyData(familyMembers);
   const [selectedMember, setSelectedMember] = useState<FamilyMemberWithData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [currentView, setCurrentView] = useState<View>("dashboard");
 
   const totalGold = familyData.reduce((sum, m) => sum + (m.userData?.stats.gp || 0), 0);
   const averageLevel = familyData.length > 0
@@ -34,6 +40,11 @@ export function Dashboard() {
   const totalDailiesDue = familyData.reduce((sum, m) => sum + (m.tasks?.filter((t) => t.type === "daily" && t.isDue && !t.completed).length || 0), 0);
   const membersWithLowHealth = familyData.filter((m) => m.userData && m.userData.stats.hp < m.userData.stats.maxHealth * 0.3);
 
+  // Show Task Manager view
+  if (currentView === "tasks") {
+    return <TaskManager onBack={() => setCurrentView("dashboard")} />;
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
       {isDemoMode && (
@@ -42,12 +53,24 @@ export function Dashboard() {
           <span className="text-muted-foreground ml-2">— Sample data for preview. Click Lock to exit.</span>
         </div>
       )}
+      
       <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gradient-gold">Family Quest</h1>
           <p className="text-muted-foreground mt-1">{familyMembers.length} family members connected</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Task Manager Button */}
+          <Button 
+            variant="gold" 
+            size="sm" 
+            onClick={() => setCurrentView("tasks")} 
+            className="gap-2"
+          >
+            <Table2 size={16} />
+            Task Manager
+          </Button>
+          
           <Button variant="outline" size="sm" onClick={refetchAll} disabled={isLoading} className="gap-2">
             <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
             Refresh

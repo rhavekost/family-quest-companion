@@ -25,6 +25,21 @@ export interface HabiticaTask {
   counterUp?: number;
   counterDown?: number;
   checklist?: { id: string; text: string; completed: boolean }[];
+  // Shared task support (local only)
+  sharedTaskId?: string;
+  assignedTo?: string[];
+}
+
+export interface SharedTask {
+  id: string;
+  text: string;
+  notes: string;
+  type: 'habit' | 'daily' | 'todo';
+  priority: number;
+  assignedTo: string[]; // Array of family member IDs
+  date?: string;
+  completedBy?: string[]; // Who has completed it
+  createdAt: string;
 }
 
 export interface HabiticaStats {
