@@ -1,14 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from "react";
+import { useFamilyStore } from "@/store/familyStore";
+import { SetupWizard } from "@/components/SetupWizard";
+import { UnlockScreen } from "@/components/UnlockScreen";
+import { Dashboard } from "@/components/Dashboard";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const { isSetupComplete, isUnlocked, encryptedData } = useFamilyStore();
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  useEffect(() => {
+    // If unlocked and setup is complete, show dashboard
+    if (isUnlocked && isSetupComplete) {
+      setShowDashboard(true);
+    }
+  }, [isUnlocked, isSetupComplete]);
+
+  // First time user - show setup wizard
+  if (!isSetupComplete) {
+    return (
+      <SetupWizard
+        onComplete={() => {
+          setShowDashboard(true);
+        }}
+      />
+    );
+  }
+
+  // Returning user - needs to unlock
+  if (!isUnlocked) {
+    return (
+      <UnlockScreen
+        onUnlock={() => {
+          setShowDashboard(true);
+        }}
+      />
+    );
+  }
+
+  // Show dashboard
+  return <Dashboard />;
 };
 
 export default Index;
