@@ -52,10 +52,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const { setPassphrase: storePassphrase, addMember, completeSetup, enableDemoMode } = useFamilyStore();
 
   const handleDemoMode = () => {
+    storePassphrase("test12");
     enableDemoMode(DEMO_FAMILY_MEMBERS);
+    completeSetup();
     toast({
       title: "Demo Mode Activated!",
-      description: "Exploring with 9 sample family members",
+      description: "Using passphrase 'test12' with 9 sample family members",
     });
     onComplete();
   };
