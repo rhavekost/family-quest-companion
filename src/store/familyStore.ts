@@ -9,6 +9,7 @@ interface FamilyStore {
   isUnlocked: boolean;
   passphrase: string | null;
   isSetupComplete: boolean;
+  isDemoMode: boolean;
   
   // Actions
   addMember: (member: FamilyMember) => void;
@@ -20,6 +21,8 @@ interface FamilyStore {
   completeSetup: () => void;
   resetAll: () => void;
   encryptAndSave: () => void;
+  enableDemoMode: (members: FamilyMember[]) => void;
+  exitDemoMode: () => void;
 }
 
 export const useFamilyStore = create<FamilyStore>()(
@@ -30,6 +33,7 @@ export const useFamilyStore = create<FamilyStore>()(
       isUnlocked: false,
       passphrase: null,
       isSetupComplete: false,
+      isDemoMode: false,
 
       addMember: (member) => {
         set((state) => ({
@@ -80,8 +84,13 @@ export const useFamilyStore = create<FamilyStore>()(
       },
 
       lock: () => {
-        get().encryptAndSave();
-        set({ isUnlocked: false, passphrase: null, familyMembers: [] });
+        const { isDemoMode } = get();
+        if (isDemoMode) {
+          set({ isDemoMode: false, isUnlocked: false, familyMembers: [] });
+        } else {
+          get().encryptAndSave();
+          set({ isUnlocked: false, passphrase: null, familyMembers: [] });
+        }
       },
 
       completeSetup: () => {
@@ -96,11 +105,13 @@ export const useFamilyStore = create<FamilyStore>()(
           isUnlocked: false,
           passphrase: null,
           isSetupComplete: false,
+          isDemoMode: false,
         });
       },
 
       encryptAndSave: () => {
-        const { familyMembers, passphrase } = get();
+        const { familyMembers, passphrase, isDemoMode } = get();
+        if (isDemoMode) return;
         if (passphrase && familyMembers.length > 0) {
           const encrypted = CryptoJS.AES.encrypt(
             JSON.stringify(familyMembers),
@@ -108,6 +119,22 @@ export const useFamilyStore = create<FamilyStore>()(
           ).toString();
           set({ encryptedData: encrypted });
         }
+      },
+
+      enableDemoMode: (members) => {
+        set({
+          familyMembers: members,
+          isUnlocked: true,
+          isDemoMode: true,
+        });
+      },
+
+      exitDemoMode: () => {
+        set({
+          familyMembers: [],
+          isUnlocked: false,
+          isDemoMode: false,
+        });
       },
     }),
     {

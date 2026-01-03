@@ -1,22 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { getUser, getTasks } from "@/lib/habiticaApi";
-import { FamilyMember, HabiticaUser, HabiticaTask } from "@/types/habitica";
+import { FamilyMember } from "@/types/habitica";
+import { useFamilyStore } from "@/store/familyStore";
+import { DEMO_USERS, DEMO_TASKS } from "@/data/demoData";
 
 export function useHabiticaUser(member: FamilyMember) {
+  const { isDemoMode } = useFamilyStore();
+  
   return useQuery({
     queryKey: ["habitica", "user", member.id],
-    queryFn: () => getUser(member.habiticaUserId, member.habiticaApiToken),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    queryFn: () => {
+      if (isDemoMode) {
+        return Promise.resolve(DEMO_USERS[member.habiticaUserId]);
+      }
+      return getUser(member.habiticaUserId, member.habiticaApiToken);
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: isDemoMode ? 0 : 2,
   });
 }
 
 export function useHabiticaTasks(member: FamilyMember) {
+  const { isDemoMode } = useFamilyStore();
+  
   return useQuery({
     queryKey: ["habitica", "tasks", member.id],
-    queryFn: () => getTasks(member.habiticaUserId, member.habiticaApiToken),
+    queryFn: () => {
+      if (isDemoMode) {
+        return Promise.resolve(DEMO_TASKS[member.habiticaUserId] || []);
+      }
+      return getTasks(member.habiticaUserId, member.habiticaApiToken);
+    },
     staleTime: 5 * 60 * 1000,
-    retry: 2,
+    retry: isDemoMode ? 0 : 2,
   });
 }
 

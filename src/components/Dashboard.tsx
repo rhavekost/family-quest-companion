@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function Dashboard() {
-  const { familyMembers, lock } = useFamilyStore();
+  const { familyMembers, lock, isDemoMode } = useFamilyStore();
   const { familyData, isLoading, refetchAll } = useFamilyData(familyMembers);
   const [selectedMember, setSelectedMember] = useState<FamilyMemberWithData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -36,6 +36,12 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      {isDemoMode && (
+        <div className="mb-4 px-4 py-2 bg-accent/20 border border-accent/30 rounded-lg text-center">
+          <span className="text-accent font-medium">🎮 Demo Mode</span>
+          <span className="text-muted-foreground ml-2">— Sample data for preview. Click Lock to exit.</span>
+        </div>
+      )}
       <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-gradient-gold">Family Quest</h1>
