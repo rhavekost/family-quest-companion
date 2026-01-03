@@ -1,0 +1,141 @@
+import { FamilyMember, HabiticaUser, HabiticaTask } from "@/types/habitica";
+
+export const DEMO_FAMILY_MEMBERS: FamilyMember[] = [
+  { id: "demo-1", displayName: "Dad", color: "#6133b4", avatarEmoji: "🧙", habiticaUserId: "demo-dad", habiticaApiToken: "demo" },
+  { id: "demo-2", displayName: "Mom", color: "#48bb78", avatarEmoji: "🧝", habiticaUserId: "demo-mom", habiticaApiToken: "demo" },
+  { id: "demo-3", displayName: "Emma", color: "#ed64a6", avatarEmoji: "🧚", habiticaUserId: "demo-emma", habiticaApiToken: "demo" },
+  { id: "demo-4", displayName: "Jake", color: "#2995cd", avatarEmoji: "🦸", habiticaUserId: "demo-jake", habiticaApiToken: "demo" },
+  { id: "demo-5", displayName: "Sophie", color: "#ffa623", avatarEmoji: "🧜", habiticaUserId: "demo-sophie", habiticaApiToken: "demo" },
+  { id: "demo-6", displayName: "Max", color: "#e53e3e", avatarEmoji: "🥷", habiticaUserId: "demo-max", habiticaApiToken: "demo" },
+  { id: "demo-7", displayName: "Lily", color: "#38b2ac", avatarEmoji: "🧞", habiticaUserId: "demo-lily", habiticaApiToken: "demo" },
+  { id: "demo-8", displayName: "Ben", color: "#ed8936", avatarEmoji: "🦹", habiticaUserId: "demo-ben", habiticaApiToken: "demo" },
+  { id: "demo-9", displayName: "Grandma", color: "#718096", avatarEmoji: "🧛", habiticaUserId: "demo-grandma", habiticaApiToken: "demo" },
+];
+
+export const DEMO_USERS: Record<string, HabiticaUser> = {
+  "demo-dad": {
+    id: "demo-dad",
+    profile: { name: "DragonSlayer42" },
+    stats: { hp: 45, maxHealth: 50, mp: 80, maxMP: 100, exp: 450, toNextLevel: 600, gp: 1250.5, lvl: 42, class: "warrior", str: 85, con: 72, int: 45, per: 38 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-mom": {
+    id: "demo-mom",
+    profile: { name: "HealerQueen" },
+    stats: { hp: 48, maxHealth: 50, mp: 120, maxMP: 150, exp: 280, toNextLevel: 500, gp: 890.25, lvl: 38, class: "healer", str: 35, con: 55, int: 88, per: 62 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-emma": {
+    id: "demo-emma",
+    profile: { name: "SparkleWizard" },
+    stats: { hp: 42, maxHealth: 50, mp: 95, maxMP: 120, exp: 180, toNextLevel: 350, gp: 456.75, lvl: 25, class: "mage", str: 28, con: 35, int: 72, per: 45 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-jake": {
+    id: "demo-jake",
+    profile: { name: "NinjaJake99" },
+    stats: { hp: 35, maxHealth: 50, mp: 60, maxMP: 80, exp: 120, toNextLevel: 280, gp: 320.0, lvl: 18, class: "rogue", str: 45, con: 28, int: 32, per: 58 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-sophie": {
+    id: "demo-sophie",
+    profile: { name: "GoldenSophie" },
+    stats: { hp: 50, maxHealth: 50, mp: 45, maxMP: 60, exp: 90, toNextLevel: 200, gp: 178.5, lvl: 12, class: "warrior", str: 32, con: 25, int: 18, per: 22 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-max": {
+    id: "demo-max",
+    profile: { name: "MaxTheBrave" },
+    stats: { hp: 12, maxHealth: 50, mp: 30, maxMP: 50, exp: 65, toNextLevel: 150, gp: 89.25, lvl: 8, class: "warrior", str: 22, con: 18, int: 12, per: 15 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-lily": {
+    id: "demo-lily",
+    profile: { name: "LilyBlossom" },
+    stats: { hp: 48, maxHealth: 50, mp: 55, maxMP: 70, exp: 40, toNextLevel: 120, gp: 245.0, lvl: 10, class: "healer", str: 15, con: 22, int: 35, per: 28 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-ben": {
+    id: "demo-ben",
+    profile: { name: "BenTheExplorer" },
+    stats: { hp: 38, maxHealth: 50, mp: 25, maxMP: 40, exp: 25, toNextLevel: 100, gp: 67.5, lvl: 6, class: "rogue", str: 18, con: 15, int: 12, per: 25 },
+    items: { gear: { equipped: {} } },
+  },
+  "demo-grandma": {
+    id: "demo-grandma",
+    profile: { name: "WiseElder" },
+    stats: { hp: 50, maxHealth: 50, mp: 200, maxMP: 200, exp: 950, toNextLevel: 1000, gp: 5420.75, lvl: 65, class: "mage", str: 45, con: 60, int: 150, per: 85 },
+    items: { gear: { equipped: {} } },
+  },
+};
+
+export const DEMO_TASKS: Record<string, HabiticaTask[]> = {
+  "demo-dad": [
+    { id: "t1", type: "daily", text: "Morning workout", notes: "30 min exercise", tags: [], value: 8, priority: 1.5, completed: true, isDue: true, streak: 45 },
+    { id: "t2", type: "daily", text: "Review kids' homework", notes: "", tags: [], value: 5, priority: 1, completed: false, isDue: true, streak: 12 },
+    { id: "t3", type: "daily", text: "Family dinner together", notes: "", tags: [], value: 10, priority: 2, completed: true, isDue: true, streak: 30 },
+    { id: "t4", type: "habit", text: "Drink water", notes: "Stay hydrated!", tags: [], value: 12, priority: 1, up: true, down: false, counterUp: 156, counterDown: 0 },
+    { id: "t5", type: "habit", text: "No snacking after 8pm", notes: "", tags: [], value: -2, priority: 1.5, up: true, down: true, counterUp: 20, counterDown: 35 },
+    { id: "t6", type: "todo", text: "Fix garage door", notes: "Call repair service", tags: [], value: 3, priority: 2, completed: false, date: "2026-01-05" },
+    { id: "t7", type: "reward", text: "Movie night", notes: "", tags: [], value: 50, priority: 1 },
+  ],
+  "demo-mom": [
+    { id: "t8", type: "daily", text: "Meditation", notes: "10 min mindfulness", tags: [], value: 15, priority: 1, completed: true, isDue: true, streak: 60 },
+    { id: "t9", type: "daily", text: "Prepare lunches", notes: "", tags: [], value: 6, priority: 1.5, completed: true, isDue: true, streak: 25 },
+    { id: "t10", type: "daily", text: "Read before bed", notes: "", tags: [], value: 8, priority: 1, completed: false, isDue: true, streak: 18 },
+    { id: "t11", type: "habit", text: "Practice gratitude", notes: "", tags: [], value: 20, priority: 1, up: true, down: false, counterUp: 245, counterDown: 0 },
+    { id: "t12", type: "todo", text: "Book dentist appointments", notes: "For Emma and Jake", tags: [], value: 2, priority: 1.5, completed: false, date: "2026-01-08" },
+    { id: "t13", type: "reward", text: "Spa day", notes: "", tags: [], value: 200, priority: 1 },
+  ],
+  "demo-emma": [
+    { id: "t14", type: "daily", text: "Practice piano", notes: "30 minutes", tags: [], value: 7, priority: 1.5, completed: true, isDue: true, streak: 15 },
+    { id: "t15", type: "daily", text: "Do homework", notes: "", tags: [], value: 5, priority: 2, completed: false, isDue: true, streak: 8 },
+    { id: "t16", type: "daily", text: "Clean room", notes: "", tags: [], value: -3, priority: 1, completed: false, isDue: true, streak: 0 },
+    { id: "t17", type: "habit", text: "Help with chores", notes: "", tags: [], value: 6, priority: 1, up: true, down: false, counterUp: 42, counterDown: 0 },
+    { id: "t18", type: "todo", text: "Science project", notes: "Due next week", tags: [], value: 1, priority: 2, completed: false, date: "2026-01-10" },
+    { id: "t19", type: "reward", text: "Extra screen time", notes: "", tags: [], value: 30, priority: 1 },
+  ],
+  "demo-jake": [
+    { id: "t20", type: "daily", text: "Soccer practice drills", notes: "", tags: [], value: 8, priority: 1.5, completed: true, isDue: true, streak: 20 },
+    { id: "t21", type: "daily", text: "Reading time", notes: "20 min", tags: [], value: 4, priority: 1, completed: false, isDue: true, streak: 5 },
+    { id: "t22", type: "daily", text: "Walk the dog", notes: "", tags: [], value: 6, priority: 1, completed: true, isDue: true, streak: 35 },
+    { id: "t23", type: "habit", text: "Be kind to sister", notes: "", tags: [], value: 2, priority: 1, up: true, down: true, counterUp: 28, counterDown: 15 },
+    { id: "t24", type: "todo", text: "Math worksheet", notes: "", tags: [], value: 0, priority: 1.5, completed: false, date: "2026-01-04" },
+    { id: "t25", type: "reward", text: "Video game time", notes: "", tags: [], value: 25, priority: 1 },
+  ],
+  "demo-sophie": [
+    { id: "t26", type: "daily", text: "Brush teeth morning", notes: "", tags: [], value: 10, priority: 1, completed: true, isDue: true, streak: 40 },
+    { id: "t27", type: "daily", text: "Brush teeth night", notes: "", tags: [], value: 10, priority: 1, completed: true, isDue: true, streak: 40 },
+    { id: "t28", type: "daily", text: "Make bed", notes: "", tags: [], value: 8, priority: 0.1, completed: true, isDue: true, streak: 25 },
+    { id: "t29", type: "habit", text: "Say please and thank you", notes: "", tags: [], value: 15, priority: 1, up: true, down: false, counterUp: 89, counterDown: 0 },
+    { id: "t30", type: "reward", text: "Sticker", notes: "", tags: [], value: 10, priority: 1 },
+  ],
+  "demo-max": [
+    { id: "t31", type: "daily", text: "Brush teeth", notes: "", tags: [], value: 5, priority: 1, completed: false, isDue: true, streak: 3 },
+    { id: "t32", type: "daily", text: "Pick up toys", notes: "", tags: [], value: -5, priority: 1, completed: false, isDue: true, streak: 0 },
+    { id: "t33", type: "daily", text: "Eat vegetables", notes: "", tags: [], value: 2, priority: 1.5, completed: false, isDue: true, streak: 2 },
+    { id: "t34", type: "habit", text: "Share with siblings", notes: "", tags: [], value: 4, priority: 1, up: true, down: true, counterUp: 12, counterDown: 8 },
+    { id: "t35", type: "reward", text: "Cookie", notes: "", tags: [], value: 15, priority: 1 },
+  ],
+  "demo-lily": [
+    { id: "t36", type: "daily", text: "Practice spelling", notes: "", tags: [], value: 6, priority: 1, completed: true, isDue: true, streak: 12 },
+    { id: "t37", type: "daily", text: "Feed the fish", notes: "", tags: [], value: 8, priority: 1, completed: true, isDue: true, streak: 30 },
+    { id: "t38", type: "daily", text: "Tidy desk", notes: "", tags: [], value: 4, priority: 0.1, completed: false, isDue: true, streak: 5 },
+    { id: "t39", type: "habit", text: "Draw something creative", notes: "", tags: [], value: 12, priority: 1, up: true, down: false, counterUp: 45, counterDown: 0 },
+    { id: "t40", type: "reward", text: "Art supplies", notes: "", tags: [], value: 40, priority: 1 },
+  ],
+  "demo-ben": [
+    { id: "t41", type: "daily", text: "Get dressed alone", notes: "", tags: [], value: 7, priority: 1, completed: true, isDue: true, streak: 15 },
+    { id: "t42", type: "daily", text: "Nap time", notes: "", tags: [], value: 5, priority: 1, completed: false, isDue: true, streak: 8 },
+    { id: "t43", type: "habit", text: "Use inside voice", notes: "", tags: [], value: 3, priority: 1, up: true, down: true, counterUp: 18, counterDown: 22 },
+    { id: "t44", type: "reward", text: "Playground time", notes: "", tags: [], value: 20, priority: 1 },
+  ],
+  "demo-grandma": [
+    { id: "t45", type: "daily", text: "Morning walk", notes: "Around the garden", tags: [], value: 18, priority: 1, completed: true, isDue: true, streak: 120 },
+    { id: "t46", type: "daily", text: "Take medications", notes: "", tags: [], value: 20, priority: 2, completed: true, isDue: true, streak: 365 },
+    { id: "t47", type: "daily", text: "Call a grandchild", notes: "", tags: [], value: 15, priority: 1, completed: true, isDue: true, streak: 45 },
+    { id: "t48", type: "habit", text: "Teach wisdom", notes: "", tags: [], value: 25, priority: 1, up: true, down: false, counterUp: 500, counterDown: 0 },
+    { id: "t49", type: "todo", text: "Bake cookies for family", notes: "", tags: [], value: 5, priority: 1, completed: false, date: "2026-01-06" },
+    { id: "t50", type: "reward", text: "New knitting yarn", notes: "", tags: [], value: 30, priority: 1 },
+  ],
+};

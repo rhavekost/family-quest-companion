@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFamilyStore } from "@/store/familyStore";
 import { testConnection } from "@/lib/habiticaApi";
 import { MEMBER_COLORS, MEMBER_AVATARS, FamilyMember } from "@/types/habitica";
+import { DEMO_FAMILY_MEMBERS } from "@/data/demoData";
 import { 
   Shield, 
   Users, 
@@ -17,7 +18,8 @@ import {
   ChevronRight,
   KeyRound,
   Lock,
-  Sparkles
+  Sparkles,
+  Play
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -47,7 +49,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     error?: string;
   } | null>(null);
 
-  const { setPassphrase: storePassphrase, addMember, completeSetup } = useFamilyStore();
+  const { setPassphrase: storePassphrase, addMember, completeSetup, enableDemoMode } = useFamilyStore();
+
+  const handleDemoMode = () => {
+    enableDemoMode(DEMO_FAMILY_MEMBERS);
+    toast({
+      title: "Demo Mode Activated!",
+      description: "Exploring with 9 sample family members",
+    });
+    onComplete();
+  };
 
   const handlePassphraseSubmit = () => {
     if (passphrase.length < 6) {
@@ -206,14 +217,26 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               </CardContent>
             </Card>
 
-            <Button
-              size="lg"
-              className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 glow-primary"
-              onClick={() => setStep('passphrase')}
-            >
-              Begin Setup
-              <ChevronRight className="ml-2" />
-            </Button>
+            <div className="space-y-3">
+              <Button
+                size="lg"
+                className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 glow-primary"
+                onClick={() => setStep('passphrase')}
+              >
+                Begin Setup
+                <ChevronRight className="ml-2" />
+              </Button>
+              
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full"
+                onClick={handleDemoMode}
+              >
+                <Play className="mr-2" size={18} />
+                Try Demo Mode
+              </Button>
+            </div>
           </motion.div>
         )}
 
