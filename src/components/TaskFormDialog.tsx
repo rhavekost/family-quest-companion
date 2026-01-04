@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { FamilyMember, HabiticaTask } from "@/types/habitica";
-import { Loader2 } from "lucide-react";
+import { Loader2, Link2, Users } from "lucide-react";
 
 interface TaskFormDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ export interface TaskFormData {
   assignees: string[]; // member IDs
   up?: boolean;
   down?: boolean;
+  isGroupTask: boolean; // When true, completing one deletes from others
 }
 
 const PRIORITY_OPTIONS = [
@@ -54,6 +56,7 @@ export function TaskFormDialog({
     assignees: [],
     up: true,
     down: true,
+    isGroupTask: false,
   });
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export function TaskFormDialog({
         assignees: initialData.ownerId ? [initialData.ownerId] : [],
         up: initialData.up ?? true,
         down: initialData.down ?? true,
+        isGroupTask: !!initialData.alias,
       });
     } else if (open && !initialData) {
       setFormData({
@@ -78,6 +82,7 @@ export function TaskFormDialog({
         assignees: [],
         up: true,
         down: true,
+        isGroupTask: false,
       });
     }
   }, [open, initialData]);
@@ -211,12 +216,38 @@ export function TaskFormDialog({
             </div>
           )}
 
+          {/* Group Task Toggle - only show when multiple assignees */}
+          {mode === "create" && formData.assignees.length > 1 && (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30 border-border">
+              <div className="flex items-center gap-3">
+                <Link2 size={18} className="text-primary" />
+                <div>
+                  <Label className="text-sm font-medium">Group Task</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When one person completes it, remove from others
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={formData.isGroupTask}
+                onCheckedChange={(checked) => setFormData({ ...formData, isGroupTask: checked })}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>
               {mode === "create" ? "Assign to" : "Owner"} 
-              {mode === "create" && formData.assignees.length > 1 && (
+              {mode === "create" && formData.assignees.length > 1 && !formData.isGroupTask && (
                 <span className="text-muted-foreground ml-2 text-xs">
-                  (Multi-create: will create separate tasks)
+                  <Users size={12} className="inline mr-1" />
+                  Multi-create: separate independent tasks
+                </span>
+              )}
+              {mode === "create" && formData.assignees.length > 1 && formData.isGroupTask && (
+                <span className="text-primary ml-2 text-xs">
+                  <Link2 size={12} className="inline mr-1" />
+                  Group task: linked across members
                 </span>
               )}
             </Label>
