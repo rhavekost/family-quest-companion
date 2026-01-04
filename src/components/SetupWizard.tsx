@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFamilyStore } from "@/store/familyStore";
-import { useSharedTaskStore } from "@/store/sharedTaskStore";
 import { testConnection } from "@/lib/habiticaApi";
 import { MEMBER_COLORS, MEMBER_AVATARS, FamilyMember } from "@/types/habitica";
 import { DEMO_FAMILY_MEMBERS } from "@/data/demoData";
@@ -51,12 +50,10 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   } | null>(null);
 
   const { setPassphrase: storePassphrase, addMember, completeSetup, enableDemoMode } = useFamilyStore();
-  const { initDemoTasks } = useSharedTaskStore();
 
   const handleDemoMode = () => {
     storePassphrase("test12");
     enableDemoMode(DEMO_FAMILY_MEMBERS);
-    initDemoTasks();
     completeSetup();
     toast({
       title: "Demo Mode Activated!",

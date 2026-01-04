@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { ClassIcon } from "@/components/ClassIcon";
 import { GoldDisplay } from "@/components/GoldDisplay";
+import { GemsDisplay } from "@/components/GemsDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { StreakBadge } from "@/components/StreakBadge";
 import { FamilyMemberWithData, HabiticaTask } from "@/types/habitica";
@@ -152,24 +153,6 @@ export function MemberDetailSheet({
                   />
                 </div>
 
-                {/* MP */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center gap-2">
-                      <Zap className="text-mana" size={16} />
-                      <span className="text-sm font-medium text-mana">Mana</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {Math.round(userData.stats.mp)}/{userData.stats.maxMP}
-                    </span>
-                  </div>
-                  <ProgressBar
-                    value={userData.stats.mp}
-                    max={userData.stats.maxMP}
-                    variant="mana"
-                  />
-                </div>
-
                 {/* XP */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -188,10 +171,28 @@ export function MemberDetailSheet({
                   />
                 </div>
 
-                {/* Gold */}
+                {/* MP */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <Zap className="text-mana" size={16} />
+                      <span className="text-sm font-medium text-mana">Mana</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {Math.round(userData.stats.mp)}/{userData.stats.maxMP}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={userData.stats.mp}
+                    max={userData.stats.maxMP}
+                    variant="mana"
+                  />
+                </div>
+
+                {/* Gold & Gems */}
                 <div className="flex justify-between items-center pt-2 border-t border-border">
-                  <span className="text-sm font-medium text-muted-foreground">Gold</span>
                   <GoldDisplay amount={userData.stats.gp} size="md" />
+                  <GemsDisplay amount={userData.balance} size="md" />
                 </div>
 
                 {/* Stats Grid */}
