@@ -16,6 +16,7 @@ const sizeConfig = {
 
 export function GoldDisplay({ amount, size = 'md', animate = true }: GoldDisplayProps) {
   const config = sizeConfig[size];
+  const formattedAmount = (amount || 0).toFixed(2);
 
   return (
     <motion.div
@@ -26,7 +27,7 @@ export function GoldDisplay({ amount, size = 'md', animate = true }: GoldDisplay
     >
       <Coins className="text-gold" size={config.icon} />
       <span className={cn("font-semibold text-gold", config.text)}>
-        {Math.floor(amount).toLocaleString()}
+        {parseFloat(formattedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
     </motion.div>
   );
