@@ -45,7 +45,9 @@ export function ClassIcon({
   size = 'md',
   showLabel = false,
 }: ClassIconProps) {
-  const config = classConfig[className];
+  // Handle unknown or undefined class values - fallback to warrior
+  const normalizedClass = className && classConfig[className] ? className : 'warrior';
+  const config = classConfig[normalizedClass];
   const sizeData = sizeConfig[size];
   const Icon = config.icon;
 
