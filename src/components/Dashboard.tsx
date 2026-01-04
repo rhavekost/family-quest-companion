@@ -8,6 +8,7 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { TaskManager } from "@/components/TaskManager";
 import { useFamilyStore } from "@/store/familyStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
+import { useGroupTaskSync } from "@/hooks/useGroupTaskSync";
 import { FamilyMemberWithData } from "@/types/habitica";
 import { 
   RefreshCw, 
@@ -32,6 +33,9 @@ export function Dashboard() {
   const [selectedMember, setSelectedMember] = useState<FamilyMemberWithData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [currentView, setCurrentView] = useState<View>("dashboard");
+
+  // Sync group tasks - auto-delete from other members when one completes
+  useGroupTaskSync(familyData, refetchAll);
 
   const totalGold = familyData.reduce((sum, m) => sum + (m.userData?.stats.gp || 0), 0);
   const totalGems = familyData.reduce((sum, m) => sum + ((m.userData?.balance || 0) * 4), 0);

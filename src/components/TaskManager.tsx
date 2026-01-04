@@ -31,6 +31,7 @@ import { createTask, updateTask, deleteTask, scoreTask } from "@/lib/habiticaApi
 import { FamilyMember, HabiticaTask } from "@/types/habitica";
 import { TaskFormDialog, TaskFormData } from "@/components/TaskFormDialog";
 import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
+import { generateGroupAlias } from "@/hooks/useGroupTaskSync";
 import {
   Search,
   Filter,
@@ -233,8 +234,13 @@ export function TaskManager({ onBack }: TaskManagerProps) {
     );
   };
 
-  // Create task(s) - supports multi-create
+  // Create task(s) - supports multi-create and group tasks
   const handleCreateTask = async (formData: TaskFormData) => {
+    // Generate alias if this is a group task (for syncing completions)
+    const groupAlias = formData.isGroupTask && formData.assignees.length > 1 
+      ? generateGroupAlias() 
+      : undefined;
+
     const taskData: Partial<HabiticaTask> = {
       text: formData.text,
       notes: formData.notes,
@@ -243,6 +249,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
       date: formData.date || undefined,
       up: formData.type === "habit" ? formData.up : undefined,
       down: formData.type === "habit" ? formData.down : undefined,
+      alias: groupAlias,
     };
 
     const promises = formData.assignees.map((memberId) => {
@@ -252,10 +259,12 @@ export function TaskManager({ onBack }: TaskManagerProps) {
     });
 
     await Promise.all(promises);
+    
+    const isGroup = formData.isGroupTask && formData.assignees.length > 1;
     toast({
-      title: "Task created",
+      title: isGroup ? "Group task created" : "Task created",
       description: formData.assignees.length > 1 
-        ? `Created ${formData.assignees.length} tasks` 
+        ? `Created ${formData.assignees.length} ${isGroup ? 'linked' : 'independent'} tasks` 
         : "Task created successfully",
     });
     refetchAll();

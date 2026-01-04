@@ -25,6 +25,7 @@ export interface HabiticaTask {
   counterUp?: number;
   counterDown?: number;
   checklist?: { id: string; text: string; completed: boolean }[];
+  alias?: string; // Used for group task linking
 }
 
 export interface HabiticaStats {
