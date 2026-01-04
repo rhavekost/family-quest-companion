@@ -51,6 +51,8 @@
     --exp-glow: 45 100% 60%;
     --gold: 38 100% 50%;
     --gold-glow: 38 100% 60%;
+    --gems: 280 80% 60%;
+    --gems-glow: 280 90% 70%;
 
     /* Task Value Colors */
     --task-worst: 0 72% 50%;

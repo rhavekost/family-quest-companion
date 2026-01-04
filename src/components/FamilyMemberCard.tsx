@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { ClassIcon } from "@/components/ClassIcon";
 import { GoldDisplay } from "@/components/GoldDisplay";
+import { GemsDisplay } from "@/components/GemsDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { StreakBadge } from "@/components/StreakBadge";
 import { FamilyMemberWithData } from "@/types/habitica";
@@ -121,25 +122,28 @@ export function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
                 />
               </div>
 
-              {/* XP Bar */}
+              {/* Mana Bar */}
               <div className="mb-4">
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-exp font-medium">XP</span>
+                  <span className="text-mana font-medium">MP</span>
                   <span className="text-muted-foreground">
-                    {Math.round(userData.stats.exp)}/{userData.stats.toNextLevel}
+                    {Math.round(userData.stats.mp)}/{userData.stats.maxMP}
                   </span>
                 </div>
                 <ProgressBar
-                  value={userData.stats.exp}
-                  max={userData.stats.toNextLevel}
-                  variant="exp"
+                  value={userData.stats.mp}
+                  max={userData.stats.maxMP}
+                  variant="mana"
                   size="sm"
                 />
               </div>
 
               {/* Footer Stats */}
               <div className="flex items-center justify-between">
-                <GoldDisplay amount={userData.stats.gp} size="sm" />
+                <div className="flex items-center gap-3">
+                  <GoldDisplay amount={userData.stats.gp} size="sm" />
+                  <GemsDisplay amount={userData.balance} size="sm" />
+                </div>
                 
                 <div className="flex items-center gap-2">
                   {totalStreak > 0 && <StreakBadge count={totalStreak} size="sm" />}

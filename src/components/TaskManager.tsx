@@ -2,9 +2,8 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -20,46 +19,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { useFamilyStore } from "@/store/familyStore";
-import { useSharedTaskStore } from "@/store/sharedTaskStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
-import { FamilyMember, HabiticaTask, SharedTask } from "@/types/habitica";
+import { FamilyMember, HabiticaTask } from "@/types/habitica";
 import {
-  Plus,
   Search,
   Filter,
   ArrowUpDown,
-  MoreHorizontal,
-  Edit,
-  Trash2,
   Check,
-  X,
   Calendar,
   Users,
   Flame,
   Target,
-  RotateCcw,
   ChevronLeft,
-  Flag,
-  CheckCircle,
-  Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-import { format, isAfter, isBefore, isToday, parseISO } from "date-fns";
+import { format, isBefore, isToday, parseISO } from "date-fns";
 
 interface TaskManagerProps {
   onBack: () => void;
 }
 
-type TaskFilter = "all" | "todo" | "daily" | "habit" | "shared";
+type TaskFilter = "all" | "todo" | "daily" | "habit";
 type StatusFilter = "all" | "pending" | "completed";
 type SortField = "text" | "type" | "priority" | "date" | "assignee";
 type SortDirection = "asc" | "desc";
@@ -72,11 +53,9 @@ interface UnifiedTask {
   priority: number;
   completed: boolean;
   date?: string;
-  assignedTo: string[];
-  isShared: boolean;
-  source: "habitica" | "local";
-  ownerId?: string;
+  ownerId: string;
   streak?: number;
+  isDue?: boolean;
 }
 
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -87,8 +66,7 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
 };
 
 export function TaskManager({ onBack }: TaskManagerProps) {
-  const { familyMembers, isDemoMode } = useFamilyStore();
-  const { sharedTasks, addSharedTask, updateSharedTask, deleteSharedTask, completeSharedTask, uncompleteSharedTask } = useSharedTaskStore();
+  const { familyMembers } = useFamilyStore();
   const { familyData } = useFamilyData(familyMembers);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,14 +75,11 @@ export function TaskManager({ onBack }: TaskManagerProps) {
   const [memberFilter, setMemberFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("text");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingTask, setEditingTask] = useState<SharedTask | null>(null);
 
-  // Combine all tasks from all family members + shared tasks
+  // Combine all Habitica tasks from all family members
   const unifiedTasks = useMemo(() => {
     const tasks: UnifiedTask[] = [];
 
-    // Add Habitica tasks from each family member
     familyData.forEach((member) => {
       (member.tasks || [])
         .filter((t) => t.type !== "reward")
@@ -117,34 +92,15 @@ export function TaskManager({ onBack }: TaskManagerProps) {
             priority: task.priority,
             completed: task.completed || false,
             date: task.date,
-            assignedTo: [member.id],
-            isShared: false,
-            source: "habitica",
             ownerId: member.id,
             streak: task.streak,
+            isDue: task.isDue,
           });
         });
     });
 
-    // Add shared/local tasks
-    sharedTasks.forEach((task) => {
-      const isCompleted = (task.completedBy || []).length >= task.assignedTo.length;
-      tasks.push({
-        id: task.id,
-        text: task.text,
-        notes: task.notes,
-        type: task.type,
-        priority: task.priority,
-        completed: isCompleted,
-        date: task.date,
-        assignedTo: task.assignedTo,
-        isShared: task.assignedTo.length > 1,
-        source: "local",
-      });
-    });
-
     return tasks;
-  }, [familyData, sharedTasks]);
+  }, [familyData]);
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -162,11 +118,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
 
     // Type filter
     if (typeFilter !== "all") {
-      if (typeFilter === "shared") {
-        filtered = filtered.filter((t) => t.isShared);
-      } else {
-        filtered = filtered.filter((t) => t.type === typeFilter);
-      }
+      filtered = filtered.filter((t) => t.type === typeFilter);
     }
 
     // Status filter
@@ -178,7 +130,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
 
     // Member filter
     if (memberFilter !== "all") {
-      filtered = filtered.filter((t) => t.assignedTo.includes(memberFilter));
+      filtered = filtered.filter((t) => t.ownerId === memberFilter);
     }
 
     // Sort
@@ -201,7 +153,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           else comparison = a.date.localeCompare(b.date);
           break;
         case "assignee":
-          comparison = a.assignedTo.length - b.assignedTo.length;
+          comparison = a.ownerId.localeCompare(b.ownerId);
           break;
       }
       return sortDirection === "asc" ? comparison : -comparison;
@@ -211,57 +163,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
   }, [unifiedTasks, searchQuery, typeFilter, statusFilter, memberFilter, sortField, sortDirection]);
 
   const getMemberById = (id: string) => familyMembers.find((m) => m.id === id);
-
-  const handleToggleComplete = (task: UnifiedTask) => {
-    if (task.source === "local") {
-      const sharedTask = sharedTasks.find((t) => t.id === task.id);
-      if (sharedTask) {
-        if (task.completed) {
-          uncompleteSharedTask(task.id, task.assignedTo[0]);
-        } else {
-          completeSharedTask(task.id, task.assignedTo[0]);
-        }
-        toast({
-          title: task.completed ? "Task reopened" : "Task completed!",
-          description: task.isShared
-            ? "Cleared for all assigned family members"
-            : undefined,
-        });
-      }
-    } else {
-      toast({
-        title: "Habitica sync required",
-        description: "This task is from Habitica. Complete it in the member detail view.",
-      });
-    }
-  };
-
-  const handleEditTask = (task: UnifiedTask) => {
-    if (task.source === "local") {
-      const sharedTask = sharedTasks.find((t) => t.id === task.id);
-      if (sharedTask) {
-        setEditingTask(sharedTask);
-        setShowAddDialog(true);
-      }
-    } else {
-      toast({
-        title: "Cannot edit Habitica task",
-        description: "This task is synced from Habitica. Edit it there.",
-      });
-    }
-  };
-
-  const handleDeleteTask = (task: UnifiedTask) => {
-    if (task.source === "local") {
-      deleteSharedTask(task.id);
-      toast({ title: "Task deleted" });
-    } else {
-      toast({
-        title: "Cannot delete Habitica task",
-        description: "This task is synced from Habitica. Delete it there.",
-      });
-    }
-  };
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -326,15 +227,10 @@ export function TaskManager({ onBack }: TaskManagerProps) {
               Task Manager
             </h1>
             <p className="text-muted-foreground text-sm">
-              {filteredTasks.length} tasks • Airtable-style view
+              {filteredTasks.length} Habitica tasks across {familyMembers.length} members
             </p>
           </div>
         </div>
-
-        <Button variant="hero" onClick={() => setShowAddDialog(true)}>
-          <Plus size={18} className="mr-2" />
-          Add Task
-        </Button>
       </motion.header>
 
       {/* Filters */}
@@ -369,7 +265,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
             <SelectItem value="todo">To-Dos</SelectItem>
             <SelectItem value="daily">Dailies</SelectItem>
             <SelectItem value="habit">Habits</SelectItem>
-            <SelectItem value="shared">Shared Only</SelectItem>
           </SelectContent>
         </Select>
 
@@ -453,170 +348,130 @@ export function TaskManager({ onBack }: TaskManagerProps) {
                       <ArrowUpDown size={14} />
                     </div>
                   </TableHead>
-                  <TableHead className="w-[180px]">Assigned To</TableHead>
-                  <TableHead className="w-[80px]">Source</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer hover:text-foreground"
+                    onClick={() => toggleSort("assignee")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Owner
+                      <ArrowUpDown size={14} />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[80px]">Streak</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <AnimatePresence>
-                  {filteredTasks.map((task, index) => (
-                    <motion.tr
-                      key={task.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ delay: index * 0.02 }}
-                      className={cn(
-                        "border-border hover:bg-secondary/50 transition-colors",
-                        task.completed && "opacity-60"
-                      )}
-                    >
-                      {/* Checkbox */}
-                      <TableCell>
-                        <button
-                          onClick={() => handleToggleComplete(task)}
-                          className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                            task.completed
-                              ? "bg-healer border-healer text-white"
-                              : "border-muted-foreground hover:border-healer"
-                          )}
-                        >
-                          {task.completed && <Check size={12} />}
-                        </button>
-                      </TableCell>
-
-                      {/* Task Name */}
-                      <TableCell>
-                        <div>
-                          <p
+                  {filteredTasks.map((task, index) => {
+                    const member = getMemberById(task.ownerId);
+                    return (
+                      <motion.tr
+                        key={task.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ delay: index * 0.02 }}
+                        className={cn(
+                          "border-border hover:bg-secondary/50 transition-colors",
+                          task.completed && "opacity-60"
+                        )}
+                      >
+                        {/* Checkbox */}
+                        <TableCell>
+                          <div
                             className={cn(
-                              "font-medium",
-                              task.completed && "line-through text-muted-foreground"
+                              "w-5 h-5 rounded border-2 flex items-center justify-center",
+                              task.completed
+                                ? "bg-healer border-healer text-primary-foreground"
+                                : "border-muted-foreground"
                             )}
                           >
-                            {task.text}
-                          </p>
-                          {task.notes && (
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {task.notes}
+                            {task.completed && <Check size={12} />}
+                          </div>
+                        </TableCell>
+
+                        {/* Task Name */}
+                        <TableCell>
+                          <div>
+                            <p
+                              className={cn(
+                                "font-medium",
+                                task.completed && "line-through text-muted-foreground"
+                              )}
+                            >
+                              {task.text}
                             </p>
-                          )}
-                        </div>
-                      </TableCell>
+                            {task.notes && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {task.notes}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
 
-                      {/* Type */}
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {getTypeIcon(task.type)}
-                          <span className="text-sm capitalize">{task.type}</span>
-                        </div>
-                      </TableCell>
+                        {/* Type */}
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            {getTypeIcon(task.type)}
+                            <span className="text-sm capitalize">{task.type}</span>
+                          </div>
+                        </TableCell>
 
-                      {/* Priority */}
-                      <TableCell>
-                        <Badge
-                          className={cn(
-                            "text-xs",
-                            PRIORITY_LABELS[task.priority]?.color || "bg-muted"
-                          )}
-                        >
-                          {PRIORITY_LABELS[task.priority]?.label || "Medium"}
-                        </Badge>
-                      </TableCell>
+                        {/* Priority */}
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "text-xs",
+                              PRIORITY_LABELS[task.priority]?.color || "bg-muted"
+                            )}
+                          >
+                            {PRIORITY_LABELS[task.priority]?.label || "Medium"}
+                          </Badge>
+                        </TableCell>
 
-                      {/* Due Date */}
-                      <TableCell>{getDueDateBadge(task.date)}</TableCell>
+                        {/* Due Date */}
+                        <TableCell>{getDueDateBadge(task.date)}</TableCell>
 
-                      {/* Assigned To */}
-                      <TableCell>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {task.assignedTo.slice(0, 3).map((memberId) => {
-                            const member = getMemberById(memberId);
-                            if (!member) return null;
-                            return (
+                        {/* Owner */}
+                        <TableCell>
+                          {member && (
+                            <div className="flex items-center gap-2">
                               <div
-                                key={memberId}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
                                 style={{
                                   backgroundColor: member.color + "30",
                                   color: member.color,
                                 }}
-                                title={member.displayName}
                               >
                                 {member.avatarEmoji || member.displayName[0]}
                               </div>
-                            );
-                          })}
-                          {task.assignedTo.length > 3 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{task.assignedTo.length - 3}
-                            </span>
+                              <span className="text-sm">{member.displayName}</span>
+                            </div>
                           )}
-                          {task.isShared && (
-                            <Badge variant="outline" className="text-xs ml-1">
-                              <Users size={10} className="mr-1" />
-                              Shared
+                        </TableCell>
+
+                        {/* Streak */}
+                        <TableCell>
+                          {task.streak && task.streak > 0 ? (
+                            <Badge variant="outline" className="text-xs border-accent text-accent">
+                              🔥 {task.streak}
                             </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
                           )}
-                        </div>
-                      </TableCell>
-
-                      {/* Source */}
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-xs",
-                            task.source === "local"
-                              ? "border-accent text-accent"
-                              : "border-primary text-primary"
-                          )}
-                        >
-                          {task.source === "local" ? "Local" : "Habitica"}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal size={16} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditTask(task)}>
-                              <Edit size={14} className="mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteTask(task)}
-                              className="text-destructive"
-                            >
-                              <Trash2 size={14} className="mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })}
                 </AnimatePresence>
 
                 {filteredTasks.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <p className="text-muted-foreground">No tasks found</p>
-                      <Button
-                        variant="outline"
-                        className="mt-4"
-                        onClick={() => setShowAddDialog(true)}
-                      >
-                        <Plus size={16} className="mr-2" />
-                        Add your first task
-                      </Button>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Tasks are synced from Habitica
+                      </p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -625,19 +480,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           </div>
         </Card>
       </motion.div>
-
-      {/* Add/Edit Dialog */}
-      <AddTaskDialog
-        open={showAddDialog}
-        onOpenChange={(open) => {
-          setShowAddDialog(open);
-          if (!open) setEditingTask(null);
-        }}
-        familyMembers={familyMembers}
-        onAddTask={addSharedTask}
-        editTask={editingTask}
-        onUpdateTask={updateSharedTask}
-      />
     </div>
   );
 }

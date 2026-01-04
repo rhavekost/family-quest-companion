@@ -68,6 +68,7 @@ export default {
         mana: "hsl(var(--mana))",
         exp: "hsl(var(--exp))",
         gold: "hsl(var(--gold))",
+        gems: "hsl(var(--gems))",
         // Classes
         warrior: "hsl(var(--warrior))",
         mage: "hsl(var(--mage))",

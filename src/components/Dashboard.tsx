@@ -15,6 +15,7 @@ import {
   Flame, 
   CheckCircle, 
   Coins,
+  Gem,
   TrendingUp,
   Settings,
   Lock,
@@ -33,6 +34,7 @@ export function Dashboard() {
   const [currentView, setCurrentView] = useState<View>("dashboard");
 
   const totalGold = familyData.reduce((sum, m) => sum + (m.userData?.stats.gp || 0), 0);
+  const totalGems = familyData.reduce((sum, m) => sum + ((m.userData?.balance || 0) * 4), 0);
   const averageLevel = familyData.length > 0
     ? Math.round(familyData.reduce((sum, m) => sum + (m.userData?.stats.lvl || 0), 0) / familyData.filter((m) => m.userData).length) || 0
     : 0;
@@ -86,8 +88,9 @@ export function Dashboard() {
         </div>
       </motion.header>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <Card className="glass-card"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center"><Coins className="text-gold" size={20} /></div><div><p className="text-xs text-muted-foreground">Total Gold</p><p className="text-lg font-bold text-gold">{Math.floor(totalGold).toLocaleString()}</p></div></CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-gems/20 flex items-center justify-center"><Gem className="text-gems" size={20} /></div><div><p className="text-xs text-muted-foreground">Total Gems</p><p className="text-lg font-bold text-gems">{Math.floor(totalGems).toLocaleString()}</p></div></CardContent></Card>
         <Card className="glass-card"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><TrendingUp className="text-primary" size={20} /></div><div><p className="text-xs text-muted-foreground">Avg Level</p><p className="text-lg font-bold text-foreground">{averageLevel}</p></div></CardContent></Card>
         <Card className="glass-card"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-healer/20 flex items-center justify-center"><CheckCircle className="text-healer" size={20} /></div><div><p className="text-xs text-muted-foreground">Dailies Done</p><p className="text-lg font-bold text-healer">{totalDailiesCompleted}</p></div></CardContent></Card>
         <Card className="glass-card"><CardContent className="p-4 flex items-center gap-3"><div className={cn("w-10 h-10 rounded-full flex items-center justify-center", totalDailiesDue > 0 ? "bg-task-bad/20" : "bg-healer/20")}><Flame className={totalDailiesDue > 0 ? "text-task-bad" : "text-healer"} size={20} /></div><div><p className="text-xs text-muted-foreground">Dailies Due</p><p className={cn("text-lg font-bold", totalDailiesDue > 0 ? "text-task-bad" : "text-healer")}>{totalDailiesDue}</p></div></CardContent></Card>
