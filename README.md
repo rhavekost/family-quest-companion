@@ -62,7 +62,36 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Deploy to Vercel
+
+This project is ready to deploy to Vercel. Follow these steps:
+
+1. **Install Vercel CLI** (optional, for CLI deployment):
+   ```sh
+   npm i -g vercel
+   ```
+
+2. **Deploy via Vercel Dashboard**:
+   - Push your code to GitHub
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Import Project"
+   - Select your repository
+   - Vercel will automatically detect the Vite configuration
+   - Click "Deploy"
+
+3. **Deploy via Vercel CLI**:
+   ```sh
+   vercel
+   ```
+
+The project includes a [vercel.json](vercel.json) configuration file that:
+- Sets the build command to `npm run build`
+- Configures the output directory as `dist`
+- Sets up proper SPA routing (all routes serve index.html for client-side routing)
+
+### Deploy via Lovable
+
+Alternatively, open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
 ## Can I connect a custom domain to my Lovable project?
 
