@@ -19,9 +19,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useFamilyStore } from "@/store/familyStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
+import { createTask, updateTask, deleteTask, scoreTask } from "@/lib/habiticaApi";
 import { FamilyMember, HabiticaTask } from "@/types/habitica";
+import { TaskFormDialog, TaskFormData } from "@/components/TaskFormDialog";
+import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
 import {
   Search,
   Filter,
@@ -32,9 +41,15 @@ import {
   Flame,
   Target,
   ChevronLeft,
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isBefore, isToday, parseISO } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 interface TaskManagerProps {
   onBack: () => void;
@@ -47,6 +62,7 @@ type SortDirection = "asc" | "desc";
 
 interface UnifiedTask {
   id: string;
+  habiticaId: string;
   text: string;
   notes: string;
   type: "habit" | "daily" | "todo";
@@ -56,6 +72,8 @@ interface UnifiedTask {
   ownerId: string;
   streak?: number;
   isDue?: boolean;
+  up?: boolean;
+  down?: boolean;
 }
 
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
@@ -67,7 +85,7 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
 
 export function TaskManager({ onBack }: TaskManagerProps) {
   const { familyMembers } = useFamilyStore();
-  const { familyData } = useFamilyData(familyMembers);
+  const { familyData, refetchAll } = useFamilyData(familyMembers);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TaskFilter>("all");
@@ -75,6 +93,13 @@ export function TaskManager({ onBack }: TaskManagerProps) {
   const [memberFilter, setMemberFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("text");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<UnifiedTask | null>(null);
+  const [scoringTaskId, setScoringTaskId] = useState<string | null>(null);
 
   // Combine all Habitica tasks from all family members
   const unifiedTasks = useMemo(() => {
@@ -86,6 +111,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
         .forEach((task) => {
           tasks.push({
             id: `${member.id}-${task.id}`,
+            habiticaId: task.id,
             text: task.text,
             notes: task.notes,
             type: task.type as "habit" | "daily" | "todo",
@@ -95,6 +121,8 @@ export function TaskManager({ onBack }: TaskManagerProps) {
             ownerId: member.id,
             streak: task.streak,
             isDue: task.isDue,
+            up: task.up,
+            down: task.down,
           });
         });
     });
@@ -106,7 +134,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
   const filteredTasks = useMemo(() => {
     let filtered = [...unifiedTasks];
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -116,24 +143,20 @@ export function TaskManager({ onBack }: TaskManagerProps) {
       );
     }
 
-    // Type filter
     if (typeFilter !== "all") {
       filtered = filtered.filter((t) => t.type === typeFilter);
     }
 
-    // Status filter
     if (statusFilter === "pending") {
       filtered = filtered.filter((t) => !t.completed);
     } else if (statusFilter === "completed") {
       filtered = filtered.filter((t) => t.completed);
     }
 
-    // Member filter
     if (memberFilter !== "all") {
       filtered = filtered.filter((t) => t.ownerId === memberFilter);
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
@@ -210,6 +233,89 @@ export function TaskManager({ onBack }: TaskManagerProps) {
     );
   };
 
+  // Create task(s) - supports multi-create
+  const handleCreateTask = async (formData: TaskFormData) => {
+    const taskData: Partial<HabiticaTask> = {
+      text: formData.text,
+      notes: formData.notes,
+      type: formData.type,
+      priority: formData.priority,
+      date: formData.date || undefined,
+      up: formData.type === "habit" ? formData.up : undefined,
+      down: formData.type === "habit" ? formData.down : undefined,
+    };
+
+    const promises = formData.assignees.map((memberId) => {
+      const member = getMemberById(memberId);
+      if (!member) return Promise.resolve();
+      return createTask(member.habiticaUserId, member.habiticaApiToken, taskData);
+    });
+
+    await Promise.all(promises);
+    toast({
+      title: "Task created",
+      description: formData.assignees.length > 1 
+        ? `Created ${formData.assignees.length} tasks` 
+        : "Task created successfully",
+    });
+    refetchAll();
+  };
+
+  // Edit task
+  const handleEditTask = async (formData: TaskFormData) => {
+    if (!selectedTask) return;
+    
+    const member = getMemberById(selectedTask.ownerId);
+    if (!member) return;
+
+    await updateTask(
+      member.habiticaUserId,
+      member.habiticaApiToken,
+      selectedTask.habiticaId,
+      {
+        text: formData.text,
+        notes: formData.notes,
+        priority: formData.priority,
+        date: formData.date || undefined,
+        up: selectedTask.type === "habit" ? formData.up : undefined,
+        down: selectedTask.type === "habit" ? formData.down : undefined,
+      }
+    );
+    toast({ title: "Task updated" });
+    refetchAll();
+    setSelectedTask(null);
+  };
+
+  // Delete task
+  const handleDeleteTask = async () => {
+    if (!selectedTask) return;
+    
+    const member = getMemberById(selectedTask.ownerId);
+    if (!member) return;
+
+    await deleteTask(member.habiticaUserId, member.habiticaApiToken, selectedTask.habiticaId);
+    toast({ title: "Task deleted" });
+    refetchAll();
+    setSelectedTask(null);
+  };
+
+  // Score/complete task
+  const handleScoreTask = async (task: UnifiedTask, direction: 'up' | 'down') => {
+    const member = getMemberById(task.ownerId);
+    if (!member) return;
+
+    setScoringTaskId(task.id);
+    try {
+      await scoreTask(member.habiticaUserId, member.habiticaApiToken, task.habiticaId, direction);
+      toast({ title: direction === 'up' ? "Task completed!" : "Task scored" });
+      refetchAll();
+    } catch (error) {
+      toast({ title: "Failed to score task", variant: "destructive" });
+    } finally {
+      setScoringTaskId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
       {/* Header */}
@@ -231,6 +337,10 @@ export function TaskManager({ onBack }: TaskManagerProps) {
             </p>
           </div>
         </div>
+        <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+          <Plus size={16} />
+          Create Task
+        </Button>
       </motion.header>
 
       {/* Filters */}
@@ -240,7 +350,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
         transition={{ delay: 0.1 }}
         className="flex flex-wrap gap-3 mb-6"
       >
-        {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -254,7 +363,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           />
         </div>
 
-        {/* Type Filter */}
         <Select value={typeFilter} onValueChange={(v: TaskFilter) => setTypeFilter(v)}>
           <SelectTrigger className="w-[130px] bg-input">
             <Filter size={14} className="mr-2" />
@@ -268,7 +376,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           </SelectContent>
         </Select>
 
-        {/* Status Filter */}
         <Select value={statusFilter} onValueChange={(v: StatusFilter) => setStatusFilter(v)}>
           <SelectTrigger className="w-[130px] bg-input">
             <SelectValue placeholder="Status" />
@@ -280,7 +387,6 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           </SelectContent>
         </Select>
 
-        {/* Member Filter */}
         <Select value={memberFilter} onValueChange={setMemberFilter}>
           <SelectTrigger className="w-[150px] bg-input">
             <Users size={14} className="mr-2" />
@@ -358,12 +464,14 @@ export function TaskManager({ onBack }: TaskManagerProps) {
                     </div>
                   </TableHead>
                   <TableHead className="w-[80px]">Streak</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <AnimatePresence>
                   {filteredTasks.map((task, index) => {
                     const member = getMemberById(task.ownerId);
+                    const isScoring = scoringTaskId === task.id;
                     return (
                       <motion.tr
                         key={task.id}
@@ -376,18 +484,31 @@ export function TaskManager({ onBack }: TaskManagerProps) {
                           task.completed && "opacity-60"
                         )}
                       >
-                        {/* Checkbox */}
+                        {/* Checkbox/Score button */}
                         <TableCell>
-                          <div
+                          <button
+                            onClick={() => {
+                              if (task.type === "habit") return; // Habits need +/- from sidebar
+                              if (!task.completed && (task.type !== "daily" || task.isDue)) {
+                                handleScoreTask(task, 'up');
+                              }
+                            }}
+                            disabled={isScoring || task.completed || (task.type === "daily" && !task.isDue)}
                             className={cn(
-                              "w-5 h-5 rounded border-2 flex items-center justify-center",
+                              "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
                               task.completed
                                 ? "bg-healer border-healer text-primary-foreground"
-                                : "border-muted-foreground"
+                                : task.type === "daily" && !task.isDue
+                                ? "border-muted-foreground/30 cursor-not-allowed"
+                                : "border-muted-foreground hover:border-healer hover:bg-healer/20 cursor-pointer"
                             )}
                           >
-                            {task.completed && <Check size={12} />}
-                          </div>
+                            {isScoring ? (
+                              <Loader2 className="animate-spin" size={10} />
+                            ) : task.completed ? (
+                              <Check size={12} />
+                            ) : null}
+                          </button>
                         </TableCell>
 
                         {/* Task Name */}
@@ -460,6 +581,38 @@ export function TaskManager({ onBack }: TaskManagerProps) {
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
+
+                        {/* Actions */}
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal size={16} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedTask(task);
+                                  setEditDialogOpen(true);
+                                }}
+                              >
+                                <Pencil size={14} className="mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  setSelectedTask(task);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 size={14} className="mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </motion.tr>
                     );
                   })}
@@ -467,10 +620,10 @@ export function TaskManager({ onBack }: TaskManagerProps) {
 
                 {filteredTasks.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={8} className="text-center py-12">
                       <p className="text-muted-foreground">No tasks found</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Tasks are synced from Habitica
+                        Create a task to get started
                       </p>
                     </TableCell>
                   </TableRow>
@@ -480,6 +633,46 @@ export function TaskManager({ onBack }: TaskManagerProps) {
           </div>
         </Card>
       </motion.div>
+
+      {/* Dialogs */}
+      <TaskFormDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        members={familyMembers}
+        onSubmit={handleCreateTask}
+        mode="create"
+      />
+
+      <TaskFormDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+        members={familyMembers}
+        onSubmit={handleEditTask}
+        initialData={selectedTask ? {
+          text: selectedTask.text,
+          notes: selectedTask.notes,
+          type: selectedTask.type,
+          priority: selectedTask.priority,
+          date: selectedTask.date,
+          ownerId: selectedTask.ownerId,
+          up: selectedTask.up,
+          down: selectedTask.down,
+        } : undefined}
+        mode="edit"
+      />
+
+      <DeleteTaskDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+        taskName={selectedTask?.text || ""}
+        onConfirm={handleDeleteTask}
+      />
     </div>
   );
 }

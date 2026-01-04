@@ -55,7 +55,7 @@ export async function getUser(
   apiToken: string
 ): Promise<HabiticaUser> {
   return fetchWithRetry<HabiticaUser>(
-    `${HABITICA_API_BASE}/user?userFields=profile,stats,items.gear.equipped,items.currentPet,items.currentMount`,
+    `${HABITICA_API_BASE}/user?userFields=profile,stats,items.gear.equipped,items.currentPet,items.currentMount,balance`,
     {
       method: 'GET',
       headers: getHeaders(userId, apiToken),
@@ -102,6 +102,30 @@ export async function createTask(
     method: 'POST',
     headers: getHeaders(userId, apiToken),
     body: JSON.stringify(task),
+  });
+}
+
+export async function updateTask(
+  userId: string,
+  apiToken: string,
+  taskId: string,
+  task: Partial<HabiticaTask>
+): Promise<HabiticaTask> {
+  return fetchWithRetry<HabiticaTask>(`${HABITICA_API_BASE}/tasks/${taskId}`, {
+    method: 'PUT',
+    headers: getHeaders(userId, apiToken),
+    body: JSON.stringify(task),
+  });
+}
+
+export async function deleteTask(
+  userId: string,
+  apiToken: string,
+  taskId: string
+): Promise<void> {
+  return fetchWithRetry<void>(`${HABITICA_API_BASE}/tasks/${taskId}`, {
+    method: 'DELETE',
+    headers: getHeaders(userId, apiToken),
   });
 }
 

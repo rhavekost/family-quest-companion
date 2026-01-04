@@ -16,8 +16,8 @@ const sizeConfig = {
 
 export function GemsDisplay({ amount, size = 'md', animate = true }: GemsDisplayProps) {
   const config = sizeConfig[size];
-  // Habitica stores gems as balance * 4
-  const gems = Math.floor(amount * 4);
+  // Habitica stores gems as balance * 4, handle undefined/null
+  const gems = Math.floor((amount || 0) * 4);
 
   return (
     <motion.div
