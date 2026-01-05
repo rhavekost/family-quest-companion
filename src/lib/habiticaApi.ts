@@ -1,4 +1,5 @@
 import { HabiticaResponse, HabiticaUser, HabiticaTask, TaskType } from '@/types/habitica';
+import { useRateLimitStore } from '@/store/rateLimitStore';
 
 const HABITICA_API_BASE = 'https://habitica.com/api/v3';
 const CLIENT_ID = 'b8f4e3d2-family-quest-dashboard';
@@ -25,6 +26,17 @@ async function fetchWithRetry<T>(
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, options);
+      
+      // Capture rate limit headers
+      const remaining = response.headers.get('x-ratelimit-remaining');
+      const resetTime = response.headers.get('x-ratelimit-reset');
+      
+      if (remaining !== null && resetTime !== null) {
+        useRateLimitStore.getState().updateRateLimit(
+          parseInt(remaining, 10),
+          resetTime
+        );
+      }
       
       if (response.status === 429) {
         // Rate limited - wait and retry

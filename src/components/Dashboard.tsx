@@ -52,7 +52,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8 pb-16">
       {isDemoMode && (
         <div className="mb-4 px-4 py-2 bg-accent/20 border border-accent/30 rounded-lg text-center">
           <span className="text-accent font-medium">🎮 Demo Mode</span>
