@@ -1,16 +1,34 @@
 import { useRateLimitStore } from "@/store/rateLimitStore";
 import { Clock, Activity } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { useState, useEffect } from "react";
 
 export function RateLimitFooter() {
   const { remaining, resetTime } = useRateLimitStore();
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
 
-  if (remaining === null || resetTime === null) {
+  useEffect(() => {
+    if (!resetTime) {
+      setSecondsRemaining(null);
+      return;
+    }
+
+    const updateSeconds = () => {
+      const now = new Date();
+      const diff = Math.max(0, Math.floor((resetTime.getTime() - now.getTime()) / 1000));
+      setSecondsRemaining(diff);
+    };
+
+    updateSeconds();
+    const interval = setInterval(updateSeconds, 1000);
+
+    return () => clearInterval(interval);
+  }, [resetTime]);
+
+  if (remaining === null || secondsRemaining === null) {
     return null;
   }
 
   const isLow = remaining < 10;
-  const resetDistance = formatDistanceToNow(resetTime, { addSuffix: true });
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-border/40 px-4 py-2 z-50">
@@ -26,7 +44,7 @@ export function RateLimitFooter() {
         </div>
         <div className="flex items-center gap-2">
           <Clock size={14} />
-          <span>Resets {resetDistance}</span>
+          <span>Resets in {secondsRemaining}s</span>
         </div>
       </div>
     </footer>
