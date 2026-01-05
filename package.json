@@ -1,8 +1,23 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "family-quest-companion",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A gamified task management dashboard for tracking your family's Habitica progress together",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rhavekost/family-quest-companion"
+  },
+  "keywords": [
+    "habitica",
+    "family",
+    "task-management",
+    "gamification",
+    "react",
+    "typescript"
+  ],
+  "author": "rhavekost",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -72,11 +87,11 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "caniuse-lite": "^1.0.30001762",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
