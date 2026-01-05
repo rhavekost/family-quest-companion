@@ -326,7 +326,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8 pb-16">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
