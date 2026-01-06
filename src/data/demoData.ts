@@ -86,6 +86,7 @@ export const DEMO_TASKS: Record<string, HabiticaTask[]> = {
     { id: "t4", type: "habit", text: "Drink water", notes: "Stay hydrated!", tags: [], value: 12, priority: 1, up: true, down: false, counterUp: 156, counterDown: 0 },
     { id: "t5", type: "habit", text: "No snacking after 8pm", notes: "", tags: [], value: -2, priority: 1.5, up: true, down: true, counterUp: 20, counterDown: 35 },
     { id: "t6", type: "todo", text: "Fix garage door", notes: "Call repair service", tags: [], value: 3, priority: 2, completed: false, date: "2026-01-05" },
+    { id: "t6-completed", type: "todo", text: "Oil change", notes: "Done at Joe's Auto", tags: [], value: 5, priority: 1, completed: true, date: "2025-12-28" },
     { id: "t7", type: "reward", text: "Movie night", notes: "", tags: [], value: 50, priority: 1 },
   ],
   "demo-mom": [

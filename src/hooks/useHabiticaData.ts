@@ -1,5 +1,5 @@
 import { useQuery, useQueries } from "@tanstack/react-query";
-import { getUser, getTasks } from "@/lib/habiticaApi";
+import { getUser, getAllTasks } from "@/lib/habiticaApi";
 import { FamilyMember } from "@/types/habitica";
 import { useFamilyStore } from "@/store/familyStore";
 import { DEMO_USERS, DEMO_TASKS } from "@/data/demoData";
@@ -29,7 +29,7 @@ export function useHabiticaTasks(member: FamilyMember) {
       if (isDemoMode) {
         return Promise.resolve(DEMO_TASKS[member.habiticaUserId] || []);
       }
-      return getTasks(member.habiticaUserId, member.habiticaApiToken);
+      return getAllTasks(member.habiticaUserId, member.habiticaApiToken);
     },
     staleTime: 5 * 60 * 1000,
     retry: isDemoMode ? 0 : 2,
@@ -60,7 +60,7 @@ export function useFamilyData(members: FamilyMember[]) {
         if (isDemoMode) {
           return Promise.resolve(DEMO_TASKS[member.habiticaUserId] || []);
         }
-        return getTasks(member.habiticaUserId, member.habiticaApiToken);
+        return getAllTasks(member.habiticaUserId, member.habiticaApiToken);
       },
       staleTime: 5 * 60 * 1000,
       retry: isDemoMode ? 0 : 2,
