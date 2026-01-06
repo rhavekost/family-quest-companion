@@ -18,6 +18,12 @@ interface FamilyMemberCardProps {
 export function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
   const { userData, tasks, isLoading, error } = member;
   
+  // Compute maxHealth and maxMP if they're missing from the API response
+  // maxHealth is always 50 in Habitica
+  // maxMP is calculated as: 2 * level + 30 + INT
+  const maxHealth = userData?.stats.maxHealth ?? 50;
+  const maxMP = userData?.stats.maxMP ?? (userData ? (2 * userData.stats.lvl + 30 + userData.stats.int) : 0);
+  
   // Calculate dailies due today
   const dailiesDue = tasks?.filter(
     (t) => t.type === 'daily' && t.isDue && !t.completed
@@ -32,7 +38,7 @@ export function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
     .reduce((sum, t) => sum + (t.streak || 0), 0) || 0;
 
   const isAllCaughtUp = dailiesDue === 0 && dailiesCompleted > 0;
-  const isLowHealth = userData && userData.stats.hp < userData.stats.maxHealth * 0.3;
+  const isLowHealth = userData && userData.stats.hp < maxHealth * 0.3;
 
   return (
     <motion.div
@@ -111,12 +117,12 @@ export function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-health font-medium">HP</span>
                   <span className="text-muted-foreground">
-                    {Math.round(userData.stats.hp)}/{userData.stats.maxHealth}
+                    {Math.round(userData.stats.hp)}/{maxHealth}
                   </span>
                 </div>
                 <ProgressBar
                   value={userData.stats.hp}
-                  max={userData.stats.maxHealth}
+                  max={maxHealth}
                   variant="health"
                   size="sm"
                 />
@@ -127,12 +133,12 @@ export function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-mana font-medium">MP</span>
                   <span className="text-muted-foreground">
-                    {Math.round(userData.stats.mp)}/{userData.stats.maxMP}
+                    {Math.round(userData.stats.mp)}/{maxMP}
                   </span>
                 </div>
                 <ProgressBar
                   value={userData.stats.mp}
-                  max={userData.stats.maxMP}
+                  max={maxMP}
                   variant="mana"
                   size="sm"
                 />
