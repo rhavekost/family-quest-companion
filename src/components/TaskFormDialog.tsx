@@ -147,7 +147,15 @@ export function TaskFormDialog({
               <Label>Type</Label>
               <Select
                 value={formData.type}
-                onValueChange={(v) => setFormData({ ...formData, type: v as any })}
+                onValueChange={(v) => {
+                  const newType = v as "habit" | "daily" | "todo";
+                  setFormData({ 
+                    ...formData, 
+                    type: newType,
+                    // Reset group task flag for non-todo types
+                    isGroupTask: newType === "todo" ? formData.isGroupTask : false
+                  });
+                }}
                 disabled={mode === "edit"}
               >
                 <SelectTrigger className="bg-input">
@@ -216,35 +224,16 @@ export function TaskFormDialog({
             </div>
           )}
 
-          {/* Group Task Toggle - only show when multiple assignees */}
-          {mode === "create" && formData.assignees.length > 1 && (
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30 border-border">
-              <div className="flex items-center gap-3">
-                <Link2 size={18} className="text-primary" />
-                <div>
-                  <Label className="text-sm font-medium">Group Task</Label>
-                  <p className="text-xs text-muted-foreground">
-                    When one person completes it, remove from others
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={formData.isGroupTask}
-                onCheckedChange={(checked) => setFormData({ ...formData, isGroupTask: checked })}
-              />
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label>
               {mode === "create" ? "Assign to" : "Owner"} 
-              {mode === "create" && formData.assignees.length > 1 && !formData.isGroupTask && (
+              {mode === "create" && formData.type === "todo" && formData.assignees.length > 1 && !formData.isGroupTask && (
                 <span className="text-muted-foreground ml-2 text-xs">
                   <Users size={12} className="inline mr-1" />
                   Multi-create: separate independent tasks
                 </span>
               )}
-              {mode === "create" && formData.assignees.length > 1 && formData.isGroupTask && (
+              {mode === "create" && formData.type === "todo" && formData.assignees.length > 1 && formData.isGroupTask && (
                 <span className="text-primary ml-2 text-xs">
                   <Link2 size={12} className="inline mr-1" />
                   Group task: linked across members
@@ -277,6 +266,25 @@ export function TaskFormDialog({
               ))}
             </div>
           </div>
+
+          {/* Group Task Toggle - only show for todos with multiple assignees */}
+          {mode === "create" && formData.type === "todo" && formData.assignees.length > 1 && (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30 border-border">
+              <div className="flex items-center gap-3">
+                <Link2 size={18} className="text-primary" />
+                <div>
+                  <Label className="text-sm font-medium">Group Task</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When one person completes it, remove from others
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={formData.isGroupTask}
+                onCheckedChange={(checked) => setFormData({ ...formData, isGroupTask: checked })}
+              />
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
