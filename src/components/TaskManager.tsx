@@ -140,7 +140,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
       filtered = filtered.filter(
         (t) =>
           t.text.toLowerCase().includes(query) ||
-          t.notes.toLowerCase().includes(query)
+          (t.notes && t.notes.toLowerCase().includes(query))
       );
     }
 
@@ -249,8 +249,12 @@ export function TaskManager({ onBack }: TaskManagerProps) {
       date: formData.date || undefined,
       up: formData.type === "habit" ? formData.up : undefined,
       down: formData.type === "habit" ? formData.down : undefined,
-      alias: groupAlias,
     };
+    
+    // Only include alias if it's defined (for group tasks)
+    if (groupAlias) {
+      taskData.alias = groupAlias;
+    }
 
     const promises = formData.assignees.map((memberId) => {
       const member = getMemberById(memberId);
