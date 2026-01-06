@@ -1,4 +1,4 @@
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { getUser, getAllTasks } from "@/lib/habiticaApi";
 import { FamilyMember } from "@/types/habitica";
 import { useFamilyStore } from "@/store/familyStore";
@@ -38,6 +38,7 @@ export function useHabiticaTasks(member: FamilyMember) {
 
 export function useFamilyData(members: FamilyMember[]) {
   const isDemoMode = useFamilyStore((state) => state.isDemoMode);
+  const queryClient = useQueryClient();
 
   const userQueries = useQueries({
     queries: members.map((member) => ({
@@ -77,9 +78,15 @@ export function useFamilyData(members: FamilyMember[]) {
     error: userQueries[index]?.error?.message || taskQueries[index]?.error?.message,
   }));
 
-  const refetchAll = () => {
-    userQueries.forEach((q) => q.refetch());
-    taskQueries.forEach((q) => q.refetch());
+  const refetchAll = async () => {
+    // Invalidate all queries first to force fresh fetches
+    await queryClient.invalidateQueries({ queryKey: ["habitica"] });
+    
+    // Then trigger refetch on all queries
+    await Promise.all([
+      ...userQueries.map((q) => q.refetch()),
+      ...taskQueries.map((q) => q.refetch()),
+    ]);
   };
 
   return {

@@ -22,7 +22,8 @@ export function useGroupTaskSync(
       
       familyData.forEach((member) => {
         (member.tasks || []).forEach((task) => {
-          if (task.alias) {
+          // Only check todos for group sync (habits and dailies don't have group behavior)
+          if (task.alias && task.type === 'todo') {
             const existing = aliasTaskMap.get(task.alias) || [];
             existing.push({ task, memberId: member.id });
             aliasTaskMap.set(task.alias, existing);
@@ -30,17 +31,25 @@ export function useGroupTaskSync(
         });
       });
 
+      console.log(`[GroupSync] Found ${aliasTaskMap.size} group task sets`);
+
       // Find completed group tasks and delete from other members
       const deletePromises: Promise<void>[] = [];
       
       for (const [alias, taskGroup] of aliasTaskMap) {
+        console.log(`[GroupSync] Checking alias "${alias}" with ${taskGroup.length} tasks`);
+        
         // Skip if we already processed this alias in this session
-        if (processedAliases.current.has(alias)) continue;
+        if (processedAliases.current.has(alias)) {
+          console.log(`[GroupSync] Already processed alias "${alias}", skipping`);
+          continue;
+        }
         
         // Check if any task in the group is completed
         const completedTask = taskGroup.find((t) => t.task.completed);
         
         if (completedTask) {
+          console.log(`[GroupSync] Found completed task in alias "${alias}"`);
           processedAliases.current.add(alias);
           
           // Delete from all other members who have uncompleted versions
@@ -48,10 +57,12 @@ export function useGroupTaskSync(
             (t) => t.memberId !== completedTask.memberId && !t.task.completed
           );
           
+          console.log(`[GroupSync] Will delete ${tasksToDelete.length} tasks from other members`);
+          
           for (const { task, memberId } of tasksToDelete) {
             const member = familyMembers.find((m) => m.id === memberId);
             if (member) {
-              console.log(`[GroupSync] Deleting task "${task.text}" from ${member.displayName} (completed by another member)`);
+              console.log(`[GroupSync] Deleting task "${task.text}" from ${member.displayName}`);
               deletePromises.push(
                 deleteTask(member.habiticaUserId, member.habiticaApiToken, task.id)
                   .catch((err) => console.error(`Failed to delete group task: ${err.message}`))
@@ -62,9 +73,13 @@ export function useGroupTaskSync(
       }
 
       if (deletePromises.length > 0) {
+        console.log(`[GroupSync] Executing ${deletePromises.length} delete operations`);
         await Promise.all(deletePromises);
         // Refetch to update the UI
+        console.log(`[GroupSync] Refetching all data after deletions`);
         setTimeout(refetchAll, 500);
+      } else {
+        console.log(`[GroupSync] No tasks to delete`);
       }
     };
 
