@@ -74,7 +74,7 @@ export interface FamilyMemberWithData extends FamilyMember {
   error?: string;
 }
 
-export type TaskType = 'habits' | 'dailys' | 'todos' | 'rewards';
+export type TaskType = 'habits' | 'dailys' | 'todos' | 'completedTodos' | 'rewards';
 
 export const CLASS_COLORS: Record<string, string> = {
   warrior: 'text-warrior',

@@ -90,6 +90,24 @@ export async function getTasks(
   });
 }
 
+/**
+ * Get all tasks including completed todos
+ * Completed todos require a separate API call with type=completedTodos
+ */
+export async function getAllTasks(
+  userId: string,
+  apiToken: string
+): Promise<HabiticaTask[]> {
+  // Fetch regular tasks (habits, dailies, todos, rewards)
+  const tasks = await getTasks(userId, apiToken);
+  
+  // Fetch completed todos separately
+  const completedTodos = await getTasks(userId, apiToken, 'completedTodos');
+  
+  // Combine both arrays
+  return [...tasks, ...completedTodos];
+}
+
 export async function scoreTask(
   userId: string,
   apiToken: string,
