@@ -271,7 +271,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
         ? `Created ${formData.assignees.length} ${isGroup ? 'linked' : 'independent'} tasks` 
         : "Task created successfully",
     });
-    refetchAll();
+    await refetchAll();
   };
 
   // Edit task
@@ -295,7 +295,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
       }
     );
     toast({ title: "Task updated" });
-    refetchAll();
+    await refetchAll();
     setSelectedTask(null);
   };
 
@@ -308,7 +308,7 @@ export function TaskManager({ onBack }: TaskManagerProps) {
 
     await deleteTask(member.habiticaUserId, member.habiticaApiToken, selectedTask.habiticaId);
     toast({ title: "Task deleted" });
-    refetchAll();
+    await refetchAll();
     setSelectedTask(null);
   };
 
@@ -321,7 +321,8 @@ export function TaskManager({ onBack }: TaskManagerProps) {
     try {
       await scoreTask(member.habiticaUserId, member.habiticaApiToken, task.habiticaId, direction);
       toast({ title: direction === 'up' ? "Task completed!" : "Task scored" });
-      refetchAll();
+      // Wait for refetch to complete before clearing loading state
+      await refetchAll();
     } catch (error) {
       toast({ title: "Failed to score task", variant: "destructive" });
     } finally {
