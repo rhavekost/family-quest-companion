@@ -67,7 +67,7 @@ export async function getUser(
   apiToken: string
 ): Promise<HabiticaUser> {
   return fetchWithRetry<HabiticaUser>(
-    `${HABITICA_API_BASE}/user?userFields=profile,stats,items.gear.equipped,items.currentPet,items.currentMount,balance`,
+    `${HABITICA_API_BASE}/user`,
     {
       method: 'GET',
       headers: getHeaders(userId, apiToken),
