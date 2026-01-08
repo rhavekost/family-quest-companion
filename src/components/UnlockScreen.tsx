@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFamilyStore } from "@/store/familyStore";
-import { Lock, KeyRound, Sparkles } from "lucide-react";
+import { DEMO_FAMILY_MEMBERS } from "@/data/demoData";
+import { Lock, KeyRound, Sparkles, Play } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface UnlockScreenProps {
@@ -14,7 +15,7 @@ interface UnlockScreenProps {
 export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
   const [passphrase, setPassphrase] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
-  const { unlockWithPassphrase } = useFamilyStore();
+  const { unlockWithPassphrase, enableDemoMode, setPassphrase: storePassphrase, completeSetup } = useFamilyStore();
 
   const handleUnlock = () => {
     setIsUnlocking(true);
@@ -43,6 +44,17 @@ export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
     if (e.key === "Enter") {
       handleUnlock();
     }
+  };
+
+  const handleDemoMode = () => {
+    storePassphrase("test12");
+    enableDemoMode(DEMO_FAMILY_MEMBERS);
+    completeSetup();
+    toast({
+      title: "Demo Mode Activated!",
+      description: "Using passphrase 'test12' with 9 sample family members",
+    });
+    onUnlock();
   };
 
   return (
@@ -106,6 +118,15 @@ export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
               ) : (
                 "Unlock"
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleDemoMode}
+              className="w-full mt-2"
+            >
+              <Play className="mr-2" size={16} />
+              Try Demo Mode
             </Button>
           </CardContent>
         </Card>
