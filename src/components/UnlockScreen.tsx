@@ -23,6 +23,7 @@ export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
     setPassphrase: storePassphrase, 
     completeSetup,
     passphrase: storedPassphrase,
+    familyId,
   } = useFamilyStore();
 
   // Auto-unlock if passphrase is stored in localStorage
@@ -115,6 +116,9 @@ export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
           <h1 className="text-3xl font-display font-bold text-gradient-gold">
             Family Quest
           </h1>
+          {familyId && (
+            <p className="text-primary font-medium mt-1">/{familyId}</p>
+          )}
           <p className="text-muted-foreground mt-2">
             Enter your family passphrase to unlock
           </p>
@@ -157,9 +161,9 @@ export function UnlockScreen({ onUnlock }: UnlockScreenProps) {
             </Button>
 
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={handleDemoMode}
-              className="w-full mt-2"
+              className="w-full"
             >
               <Play className="mr-2" size={16} />
               Try Demo Mode
