@@ -9,6 +9,7 @@ const VAULT_API = '/api/vault';
 interface FamilyStore {
   familyMembers: FamilyMember[];
   encryptedData: string | null;
+  familyId: string | null;
   isUnlocked: boolean;
   passphrase: string | null;
   isSetupComplete: boolean;
@@ -18,6 +19,7 @@ interface FamilyStore {
   lastSyncError: string | null;
   
   // Actions
+  setFamilyId: (familyId: string) => void;
   addMember: (member: FamilyMember) => void;
   removeMember: (id: string) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
@@ -33,9 +35,24 @@ interface FamilyStore {
   // Server sync
   fetchVaultFromServer: () => Promise<string | null>;
   saveVaultToServer: (encryptedData: string) => Promise<boolean>;
-  
-  // Migration helper - imports existing members from localStorage format
-  importFromLocalStorage: (passphrase: string) => void;
+  serverHasVault: () => Promise<boolean>;
+}
+
+// Try to decrypt a vault with a passphrase
+function tryDecrypt(encryptedData: string, passphrase: string): { members: FamilyMember[] } | null {
+  try {
+    const bytes = CryptoJS.AES.decrypt(encryptedData, passphrase);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    if (decrypted) {
+      const data = JSON.parse(decrypted);
+      // Handle both old format (array) and new format (object with members)
+      const members = Array.isArray(data) ? data : data.members || [];
+      return { members };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export const useFamilyStore = create<FamilyStore>()(
@@ -43,6 +60,7 @@ export const useFamilyStore = create<FamilyStore>()(
     (set, get) => ({
       familyMembers: [],
       encryptedData: null,
+      familyId: null,
       isUnlocked: false,
       passphrase: null,
       isSetupComplete: false,
@@ -50,6 +68,10 @@ export const useFamilyStore = create<FamilyStore>()(
       isLoading: false,
       isSyncing: false,
       lastSyncError: null,
+
+      setFamilyId: (familyId) => {
+        set({ familyId });
+      },
 
       addMember: (member) => {
         set((state) => ({
@@ -79,10 +101,15 @@ export const useFamilyStore = create<FamilyStore>()(
       },
 
       fetchVaultFromServer: async () => {
+        const { familyId } = get();
+        if (!familyId) {
+          console.error('No family ID set');
+          return null;
+        }
+
         try {
-          const response = await fetch(VAULT_API);
+          const response = await fetch(`${VAULT_API}?familyId=${encodeURIComponent(familyId)}`);
           if (response.status === 503) {
-            // Server vault not configured, use local only
             console.log('Server vault not configured, using local storage');
             return null;
           }
@@ -97,10 +124,21 @@ export const useFamilyStore = create<FamilyStore>()(
         }
       },
 
+      serverHasVault: async () => {
+        const vault = await get().fetchVaultFromServer();
+        return vault !== null;
+      },
+
       saveVaultToServer: async (encryptedData: string) => {
+        const { familyId } = get();
+        if (!familyId) {
+          console.error('No family ID set');
+          return false;
+        }
+
         set({ isSyncing: true, lastSyncError: null });
         try {
-          const response = await fetch(VAULT_API, {
+          const response = await fetch(`${VAULT_API}?familyId=${encodeURIComponent(familyId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ vault: encryptedData }),
@@ -120,48 +158,68 @@ export const useFamilyStore = create<FamilyStore>()(
       unlockWithPassphrase: async (passphrase) => {
         set({ isLoading: true });
         
-        // First, try to fetch from server
+        // Fetch vault from server for this family
         const serverVault = await get().fetchVaultFromServer();
         
-        // Use server vault if available, otherwise fall back to local
-        const { encryptedData: localVault } = get();
-        const vaultToDecrypt = serverVault || localVault;
+        // Try server vault first
+        if (serverVault) {
+          const result = tryDecrypt(serverVault, passphrase);
+          if (result) {
+            set({ 
+              familyMembers: result.members, 
+              passphrase, 
+              isUnlocked: true,
+              encryptedData: serverVault,
+              isSetupComplete: result.members.length > 0,
+              isLoading: false,
+            });
+            return true;
+          }
+        }
         
-        if (!vaultToDecrypt) {
-          // No vault exists yet - this is a fresh setup
+        // Try local encrypted data as fallback
+        const { encryptedData: localVault } = get();
+        if (localVault) {
+          const result = tryDecrypt(localVault, passphrase);
+          if (result) {
+            set({ 
+              familyMembers: result.members, 
+              passphrase, 
+              isUnlocked: true,
+              isSetupComplete: result.members.length > 0,
+              isLoading: false,
+            });
+            return true;
+          }
+        }
+        
+        // No vault exists yet - this is a fresh setup
+        if (!serverVault && !localVault) {
           set({ passphrase, isUnlocked: true, isLoading: false });
           return true;
         }
-
-        try {
-          const bytes = CryptoJS.AES.decrypt(vaultToDecrypt, passphrase);
-          const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-          if (decrypted) {
-            const data = JSON.parse(decrypted);
-            // Handle both old format (array) and new format (object with members)
-            const members = Array.isArray(data) ? data : data.members || [];
+        
+        // If local vault decrypted but server didn't have it, sync to server
+        if (!serverVault && localVault) {
+          const localResult = tryDecrypt(localVault, passphrase);
+          if (localResult) {
             set({ 
-              familyMembers: members as FamilyMember[], 
+              familyMembers: localResult.members, 
               passphrase, 
               isUnlocked: true,
-              encryptedData: vaultToDecrypt,
-              isSetupComplete: members.length > 0,
+              encryptedData: localVault,
+              isSetupComplete: localResult.members.length > 0,
               isLoading: false,
             });
-            
-            // If we got data from server, update local cache
-            if (serverVault && serverVault !== localVault) {
-              set({ encryptedData: serverVault });
-            }
-            
+            // Auto-sync to server
+            get().saveVaultToServer(localVault);
             return true;
           }
-          set({ isLoading: false });
-          return false;
-        } catch {
-          set({ isLoading: false });
-          return false;
         }
+
+        // Vault exists but passphrase didn't work
+        set({ isLoading: false });
+        return false;
       },
 
       lock: () => {
@@ -194,7 +252,6 @@ export const useFamilyStore = create<FamilyStore>()(
         const { familyMembers, passphrase, isDemoMode } = get();
         if (isDemoMode) return;
         if (passphrase && familyMembers.length > 0) {
-          // Store as object with members array for future extensibility
           const dataToEncrypt = JSON.stringify({ 
             members: familyMembers,
             version: 1,
@@ -222,23 +279,13 @@ export const useFamilyStore = create<FamilyStore>()(
           isDemoMode: false,
         });
       },
-
-      // Migration helper: call this once to import existing localStorage data to server
-      importFromLocalStorage: (passphrase: string) => {
-        const { familyMembers } = get();
-        if (familyMembers.length > 0 && passphrase) {
-          console.log(`Importing ${familyMembers.length} members to server vault...`);
-          get().encryptAndSave();
-        }
-      },
     }),
     {
       name: 'family-quest-storage',
       partialize: (state) => ({
-        // Keep local encrypted cache for offline/fallback
         encryptedData: state.encryptedData,
+        familyId: state.familyId,
         isSetupComplete: state.isSetupComplete,
-        // Also persist passphrase to localStorage for auto-unlock
         passphrase: state.passphrase,
       }),
     }
