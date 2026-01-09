@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFamilyStore } from "@/store/familyStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
+import { useSortedMembers } from "@/hooks/useSortedMembers";
 import { createTask, updateTask, deleteTask, scoreTask } from "@/lib/habiticaApi";
 import { FamilyMember, HabiticaTask } from "@/types/habitica";
 import { TaskFormDialog, TaskFormData } from "@/components/TaskFormDialog";
@@ -85,7 +86,7 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
 };
 
 export function TaskManager({ onBack }: TaskManagerProps) {
-  const { familyMembers } = useFamilyStore();
+  const familyMembers = useSortedMembers();
   const { familyData, refetchAll } = useFamilyData(familyMembers);
 
   const [searchQuery, setSearchQuery] = useState("");

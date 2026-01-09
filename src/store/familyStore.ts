@@ -8,6 +8,7 @@ const VAULT_API = '/api/vault';
 
 interface FamilyStore {
   familyMembers: FamilyMember[];
+  memberOrder: string[]; // Array of member IDs in display order
   encryptedData: string | null;
   familyId: string | null;
   isUnlocked: boolean;
@@ -23,6 +24,8 @@ interface FamilyStore {
   addMember: (member: FamilyMember) => void;
   removeMember: (id: string) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
+  setMemberOrder: (memberIds: string[]) => void;
+  getSortedMembers: () => FamilyMember[];
   setPassphrase: (passphrase: string) => void;
   unlockWithPassphrase: (passphrase: string) => Promise<boolean>;
   lock: () => void;
@@ -39,7 +42,7 @@ interface FamilyStore {
 }
 
 // Try to decrypt a vault with a passphrase
-function tryDecrypt(encryptedData: string, passphrase: string): { members: FamilyMember[] } | null {
+function tryDecrypt(encryptedData: string, passphrase: string): { members: FamilyMember[], memberOrder?: string[] } | null {
   try {
     const bytes = CryptoJS.AES.decrypt(encryptedData, passphrase);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
@@ -47,7 +50,8 @@ function tryDecrypt(encryptedData: string, passphrase: string): { members: Famil
       const data = JSON.parse(decrypted);
       // Handle both old format (array) and new format (object with members)
       const members = Array.isArray(data) ? data : data.members || [];
-      return { members };
+      const memberOrder = !Array.isArray(data) ? data.memberOrder : undefined;
+      return { members, memberOrder };
     }
     return null;
   } catch {
@@ -59,6 +63,7 @@ export const useFamilyStore = create<FamilyStore>()(
   persist(
     (set, get) => ({
       familyMembers: [],
+      memberOrder: [],
       encryptedData: null,
       familyId: null,
       isUnlocked: false,
@@ -76,6 +81,7 @@ export const useFamilyStore = create<FamilyStore>()(
       addMember: (member) => {
         set((state) => ({
           familyMembers: [...state.familyMembers, member],
+          memberOrder: [...state.memberOrder, member.id],
         }));
         get().encryptAndSave();
       },
@@ -83,6 +89,7 @@ export const useFamilyStore = create<FamilyStore>()(
       removeMember: (id) => {
         set((state) => ({
           familyMembers: state.familyMembers.filter((m) => m.id !== id),
+          memberOrder: state.memberOrder.filter((mId) => mId !== id),
         }));
         get().encryptAndSave();
       },
@@ -94,6 +101,34 @@ export const useFamilyStore = create<FamilyStore>()(
           ),
         }));
         get().encryptAndSave();
+      },
+
+      setMemberOrder: (memberIds) => {
+        set({ memberOrder: memberIds });
+        get().encryptAndSave();
+      },
+
+      getSortedMembers: () => {
+        const { familyMembers, memberOrder } = get();
+        
+        // If no order is set, return members as-is
+        if (memberOrder.length === 0) {
+          return familyMembers;
+        }
+        
+        // Create a map for quick lookups
+        const memberMap = new Map(familyMembers.map(m => [m.id, m]));
+        
+        // Sort by memberOrder, then append any new members not in the order
+        const sortedMembers = memberOrder
+          .map(id => memberMap.get(id))
+          .filter((m): m is FamilyMember => m !== undefined);
+        
+        // Add any members not in the order (newly added)
+        const orderedIds = new Set(memberOrder);
+        const newMembers = familyMembers.filter(m => !orderedIds.has(m.id));
+        
+        return [...sortedMembers, ...newMembers];
       },
 
       setPassphrase: (passphrase) => {
@@ -166,7 +201,8 @@ export const useFamilyStore = create<FamilyStore>()(
           const result = tryDecrypt(serverVault, passphrase);
           if (result) {
             set({ 
-              familyMembers: result.members, 
+              familyMembers: result.members,
+              memberOrder: result.memberOrder || result.members.map(m => m.id),
               passphrase, 
               isUnlocked: true,
               encryptedData: serverVault,
@@ -183,7 +219,8 @@ export const useFamilyStore = create<FamilyStore>()(
           const result = tryDecrypt(localVault, passphrase);
           if (result) {
             set({ 
-              familyMembers: result.members, 
+              familyMembers: result.members,
+              memberOrder: result.memberOrder || result.members.map(m => m.id),
               passphrase, 
               isUnlocked: true,
               isSetupComplete: result.members.length > 0,
@@ -204,7 +241,8 @@ export const useFamilyStore = create<FamilyStore>()(
           const localResult = tryDecrypt(localVault, passphrase);
           if (localResult) {
             set({ 
-              familyMembers: localResult.members, 
+              familyMembers: localResult.members,
+              memberOrder: localResult.memberOrder || localResult.members.map(m => m.id),
               passphrase, 
               isUnlocked: true,
               encryptedData: localVault,
@@ -240,6 +278,7 @@ export const useFamilyStore = create<FamilyStore>()(
       resetAll: () => {
         set({
           familyMembers: [],
+          memberOrder: [],
           encryptedData: null,
           isUnlocked: false,
           passphrase: null,
@@ -249,12 +288,13 @@ export const useFamilyStore = create<FamilyStore>()(
       },
 
       encryptAndSave: async () => {
-        const { familyMembers, passphrase, isDemoMode } = get();
+        const { familyMembers, memberOrder, passphrase, isDemoMode } = get();
         if (isDemoMode) return;
         if (passphrase && familyMembers.length > 0) {
           const dataToEncrypt = JSON.stringify({ 
             members: familyMembers,
-            version: 1,
+            memberOrder,
+            version: 2,
           });
           const encrypted = CryptoJS.AES.encrypt(dataToEncrypt, passphrase).toString();
           set({ encryptedData: encrypted });
@@ -267,6 +307,7 @@ export const useFamilyStore = create<FamilyStore>()(
       enableDemoMode: (members) => {
         set({
           familyMembers: members,
+          memberOrder: members.map(m => m.id),
           isUnlocked: true,
           isDemoMode: true,
         });
@@ -275,6 +316,7 @@ export const useFamilyStore = create<FamilyStore>()(
       exitDemoMode: () => {
         set({
           familyMembers: [],
+          memberOrder: [],
           isUnlocked: false,
           isDemoMode: false,
         });

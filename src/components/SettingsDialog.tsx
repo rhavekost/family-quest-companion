@@ -25,6 +25,7 @@ import {
   Upload,
   Cloud,
   CloudOff,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -36,7 +37,8 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { 
-    familyMembers, 
+    getSortedMembers,
+    setMemberOrder,
     addMember, 
     removeMember, 
     resetAll, 
@@ -44,6 +46,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     isSyncing,
     lastSyncError,
   } = useFamilyStore();
+  
+  const familyMembers = getSortedMembers();
+  
   const [showAddForm, setShowAddForm] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -58,6 +63,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     color: MEMBER_COLORS[familyMembers.length % MEMBER_COLORS.length].value,
     avatarEmoji: MEMBER_AVATARS[familyMembers.length % MEMBER_AVATARS.length],
   });
+  
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleTestConnection = async () => {
     if (!newMember.habiticaUserId || !newMember.habiticaApiToken) {
@@ -125,6 +134,49 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     });
   };
 
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newOrder = [...familyMembers];
+    const [movedMember] = newOrder.splice(draggedIndex, 1);
+    newOrder.splice(dropIndex, 0, movedMember);
+
+    setMemberOrder(newOrder.map(m => m.id));
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    toast({
+      title: "Order updated",
+      description: "Member order has been saved.",
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const handleExport = () => {
     const data = JSON.stringify(familyMembers, null, 2);
     const blob = new Blob([data], { type: "application/json" });
@@ -179,15 +231,29 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Family Members</h3>
             <span className="text-sm text-muted-foreground">
-              {familyMembers.length} members
+              {familyMembers.length} members • Drag to reorder
             </span>
           </div>
 
           <div className="space-y-2">
-            {familyMembers.map((member) => (
-              <Card key={member.id} className="glass-card">
+            {familyMembers.map((member, index) => (
+              <Card
+                key={member.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "glass-card cursor-move transition-all",
+                  draggedIndex === index && "opacity-50",
+                  dragOverIndex === index && "border-primary border-2"
+                )}
+              >
                 <CardContent className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
+                    <GripVertical className="text-muted-foreground" size={18} />
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
                       style={{ backgroundColor: member.color + "30", color: member.color }}
