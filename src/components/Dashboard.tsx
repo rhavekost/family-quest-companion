@@ -8,6 +8,7 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { TaskManager } from "@/components/TaskManager";
 import { useFamilyStore } from "@/store/familyStore";
 import { useFamilyData } from "@/hooks/useHabiticaData";
+import { useSortedMembers } from "@/hooks/useSortedMembers";
 import { useGroupTaskSync } from "@/hooks/useGroupTaskSync";
 import { FamilyMemberWithData } from "@/types/habitica";
 import { 
@@ -28,7 +29,8 @@ import { cn } from "@/lib/utils";
 type View = "dashboard" | "tasks";
 
 export function Dashboard() {
-  const { familyMembers, lock, isDemoMode } = useFamilyStore();
+  const { lock, isDemoMode } = useFamilyStore();
+  const familyMembers = useSortedMembers();
   const { familyData, isLoading, refetchAll } = useFamilyData(familyMembers);
   const [selectedMember, setSelectedMember] = useState<FamilyMemberWithData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
