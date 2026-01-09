@@ -62,7 +62,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     onComplete();
   };
 
-  const handlePassphraseSubmit = () => {
+  const handlePassphraseSubmit = async () => {
     if (passphrase.length < 6) {
       toast({
         title: "Passphrase too short",
@@ -143,7 +143,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     });
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (members.length === 0) {
       toast({
         title: "No members added",
@@ -152,7 +152,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       });
       return;
     }
-    completeSetup();
+    await completeSetup();
     setStep('complete');
     setTimeout(onComplete, 2000);
   };
