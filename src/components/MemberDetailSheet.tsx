@@ -15,8 +15,10 @@ import { GoldDisplay } from "@/components/GoldDisplay";
 import { GemsDisplay } from "@/components/GemsDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { StreakBadge } from "@/components/StreakBadge";
+import { TaskFormDialog, TaskFormData } from "@/components/TaskFormDialog";
+import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
 import { FamilyMemberWithData, HabiticaTask } from "@/types/habitica";
-import { scoreTask } from "@/lib/habiticaApi";
+import { scoreTask, createTask, updateTask, deleteTask } from "@/lib/habiticaApi";
 import { 
   Check, 
   Plus, 
@@ -28,10 +30,20 @@ import {
   Loader2,
   Heart,
   Zap,
-  Star
+  Star,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useFamilyStore } from "@/store/familyStore";
 
 interface MemberDetailSheetProps {
   member: FamilyMemberWithData | null;
@@ -46,7 +58,14 @@ export function MemberDetailSheet({
   onOpenChange,
   onRefresh 
 }: MemberDetailSheetProps) {
+  const { familyMembers } = useFamilyStore();
   const [scoringTask, setScoringTask] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogType, setCreateDialogType] = useState<"habit" | "daily" | "todo" | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<HabiticaTask | null>(null);
+  const [activeTab, setActiveTab] = useState("dailies");
 
   if (!member) return null;
 
@@ -70,7 +89,7 @@ export function MemberDetailSheet({
         title: direction === 'up' ? "Task completed!" : "Task scored down",
         description: "Stats updated successfully",
       });
-      onRefresh();
+      await onRefresh();
     } catch (error) {
       toast({
         title: "Failed to score task",
@@ -80,6 +99,53 @@ export function MemberDetailSheet({
     } finally {
       setScoringTask(null);
     }
+  };
+
+  const handleCreateTask = async (formData: TaskFormData) => {
+    const taskData: Partial<HabiticaTask> = {
+      text: formData.text,
+      notes: formData.notes,
+      type: formData.type,
+      priority: formData.priority,
+      date: formData.date || undefined,
+      up: formData.type === "habit" ? formData.up : undefined,
+      down: formData.type === "habit" ? formData.down : undefined,
+    };
+
+    await createTask(member.habiticaUserId, member.habiticaApiToken, taskData);
+    toast({ title: "Task created" });
+    await onRefresh();
+    setCreateDialogType(null);
+  };
+
+  const handleEditTask = async (formData: TaskFormData) => {
+    if (!selectedTask) return;
+
+    await updateTask(
+      member.habiticaUserId,
+      member.habiticaApiToken,
+      selectedTask.id,
+      {
+        text: formData.text,
+        notes: formData.notes,
+        priority: formData.priority,
+        date: formData.date || undefined,
+        up: selectedTask.type === "habit" ? formData.up : undefined,
+        down: selectedTask.type === "habit" ? formData.down : undefined,
+      }
+    );
+    toast({ title: "Task updated" });
+    await onRefresh();
+    setSelectedTask(null);
+  };
+
+  const handleDeleteTask = async () => {
+    if (!selectedTask) return;
+
+    await deleteTask(member.habiticaUserId, member.habiticaApiToken, selectedTask.id);
+    toast({ title: "Task deleted" });
+    await onRefresh();
+    setSelectedTask(null);
   };
 
   const getTaskColor = (value: number) => {
@@ -97,6 +163,37 @@ export function MemberDetailSheet({
     if (value < 10) return 'bg-task-good/10 border-task-good/30';
     return 'bg-task-best/10 border-task-best/30';
   };
+
+  const TaskItemMenu = ({ task }: { task: HabiticaTask }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <MoreHorizontal size={14} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedTask(task);
+            setEditDialogOpen(true);
+          }}
+        >
+          <Pencil size={14} className="mr-2" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-destructive"
+          onClick={() => {
+            setSelectedTask(task);
+            setDeleteDialogOpen(true);
+          }}
+        >
+          <Trash2 size={14} className="mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -218,25 +315,47 @@ export function MemberDetailSheet({
             </Card>
 
             {/* Tasks Tabs */}
-            <Tabs defaultValue="dailies" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 bg-secondary">
-                <TabsTrigger value="habits" className="gap-1">
-                  <Flame size={14} />
-                  <span className="hidden sm:inline">Habits</span>
-                </TabsTrigger>
-                <TabsTrigger value="dailies" className="gap-1">
-                  <Calendar size={14} />
-                  <span className="hidden sm:inline">Dailies</span>
-                </TabsTrigger>
-                <TabsTrigger value="todos" className="gap-1">
-                  <Target size={14} />
-                  <span className="hidden sm:inline">To-Dos</span>
-                </TabsTrigger>
-                <TabsTrigger value="rewards" className="gap-1">
-                  <Gift size={14} />
-                  <span className="hidden sm:inline">Rewards</span>
-                </TabsTrigger>
-              </TabsList>
+            <Tabs defaultValue="dailies" className="w-full" onValueChange={setActiveTab}>
+              <div className="flex items-center gap-2">
+                <TabsList className="flex-1 grid grid-cols-4 bg-secondary">
+                  <TabsTrigger value="habits" className="gap-1">
+                    <Flame size={14} />
+                    <span className="hidden sm:inline">Habits</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dailies" className="gap-1">
+                    <Calendar size={14} />
+                    <span className="hidden sm:inline">Dailies</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="todos" className="gap-1">
+                    <Target size={14} />
+                    <span className="hidden sm:inline">To-Dos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="rewards" className="gap-1">
+                    <Gift size={14} />
+                    <span className="hidden sm:inline">Rewards</span>
+                  </TabsTrigger>
+                </TabsList>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 w-9 p-0 shrink-0"
+                  disabled={activeTab === "rewards"}
+                  onClick={() => {
+                    const typeMap: Record<string, "habit" | "daily" | "todo"> = {
+                      habits: "habit",
+                      dailies: "daily",
+                      todos: "todo",
+                    };
+                    const type = typeMap[activeTab];
+                    if (type) {
+                      setCreateDialogType(type);
+                      setCreateDialogOpen(true);
+                    }
+                  }}
+                >
+                  <Plus size={16} />
+                </Button>
+              </div>
 
               {/* Habits */}
               <TabsContent value="habits" className="mt-4 space-y-2">
@@ -294,6 +413,7 @@ export function MemberDetailSheet({
                       <div className="text-xs text-muted-foreground">
                         +{task.counterUp || 0} / -{task.counterDown || 0}
                       </div>
+                      <TaskItemMenu task={task} />
                     </motion.div>
                   ))
                 )}
@@ -358,6 +478,7 @@ export function MemberDetailSheet({
                       {task.streak && task.streak > 0 && (
                         <StreakBadge count={task.streak} size="sm" />
                       )}
+                      <TaskItemMenu task={task} />
                     </motion.div>
                   ))
                 )}
@@ -401,6 +522,7 @@ export function MemberDetailSheet({
                           </p>
                         )}
                       </div>
+                      <TaskItemMenu task={task} />
                     </motion.div>
                   ))
                 )}
@@ -449,6 +571,52 @@ export function MemberDetailSheet({
           </>
         )}
       </SheetContent>
+
+      {/* Create Task Dialog */}
+      <TaskFormDialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) setCreateDialogType(null);
+        }}
+        members={familyMembers}
+        onSubmit={handleCreateTask}
+        initialData={createDialogType ? { type: createDialogType, ownerId: member.id } : undefined}
+        mode="create"
+      />
+
+      {/* Edit Task Dialog */}
+      <TaskFormDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+        members={familyMembers}
+        onSubmit={handleEditTask}
+        initialData={selectedTask ? {
+          text: selectedTask.text,
+          notes: selectedTask.notes,
+          type: selectedTask.type as "habit" | "daily" | "todo",
+          priority: selectedTask.priority,
+          date: selectedTask.date,
+          ownerId: member.id,
+          up: selectedTask.up,
+          down: selectedTask.down,
+        } : undefined}
+        mode="edit"
+      />
+
+      {/* Delete Task Dialog */}
+      <DeleteTaskDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+        taskName={selectedTask?.text || ""}
+        onConfirm={handleDeleteTask}
+      />
     </Sheet>
   );
 }

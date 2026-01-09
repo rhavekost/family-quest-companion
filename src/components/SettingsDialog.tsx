@@ -23,6 +23,8 @@ import {
   AlertTriangle,
   Download,
   Upload,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -33,7 +35,15 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { familyMembers, addMember, removeMember, resetAll } = useFamilyStore();
+  const { 
+    familyMembers, 
+    addMember, 
+    removeMember, 
+    resetAll, 
+    encryptAndSave,
+    isSyncing,
+    lastSyncError,
+  } = useFamilyStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -128,6 +138,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       title: "Export complete",
       description: "Family data has been exported",
     });
+  };
+
+  const handleSyncToServer = async () => {
+    await encryptAndSave();
+    if (!lastSyncError) {
+      toast({
+        title: "Synced to server",
+        description: "Your family data is now available on all devices",
+      });
+    } else {
+      toast({
+        title: "Sync failed",
+        description: lastSyncError,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleResetAll = () => {
@@ -349,12 +375,54 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           )}
         </div>
 
+        {/* Cloud Sync Status */}
+        <div className="pt-4 border-t border-border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Cloud size={18} className="text-primary" />
+              Cloud Sync
+            </h3>
+            {lastSyncError ? (
+              <span className="text-xs text-destructive flex items-center gap-1">
+                <CloudOff size={14} />
+                Sync error
+              </span>
+            ) : (
+              <span className="text-xs text-healer flex items-center gap-1">
+                <Check size={14} />
+                Synced
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Sync your encrypted vault to the server so all your devices can access it with the same passphrase.
+          </p>
+          <Button
+            variant="outline"
+            onClick={handleSyncToServer}
+            disabled={isSyncing || familyMembers.length === 0}
+            className="w-full"
+          >
+            {isSyncing ? (
+              <>
+                <Loader2 className="animate-spin mr-2" size={16} />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2" size={16} />
+                Sync to Server
+              </>
+            )}
+          </Button>
+        </div>
+
         {/* Actions */}
         <div className="pt-4 border-t border-border space-y-2">
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport} className="flex-1">
               <Download className="mr-2" size={16} />
-              Export Data
+              Export Backup
             </Button>
           </div>
           <Button
